@@ -46,8 +46,6 @@ class DatabaseSeeder extends Seeder
         User::factory()->count(5)->create();
 
         // Call the course seeders
-        $this->call([
-            CoursSeeder::class,
-        ]);
+       
     }
 }

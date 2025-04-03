@@ -64,3 +64,66 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+# Excellence School Management System
+
+## Database Migration System
+
+This project includes a custom migration system to easily set up the database structure for the Excellence School Management System.
+
+### Migration Files
+
+The database schema is defined in the following migration files:
+
+1. `2025_04_04_000000_create_excellence_database_schema.php` - Creates all tables and basic schema
+2. `2025_04_04_000001_seed_initial_data.php` - Seeds the database with initial data (users, courses)
+3. `2025_04_04_000002_add_custom_db_functions.php` - Adds custom MySQL functions
+
+### Using the Migration System
+
+You can set up the database using the standard Laravel migration command:
+
+```bash
+php artisan migrate
+```
+
+Or use the custom Excellence migration command for additional options:
+
+```bash
+# Run migrations
+php artisan excellence:migrate
+
+# Run migrations with a fresh database (drops all tables first)
+php artisan excellence:migrate --fresh
+
+# Run migrations and seed the database with initial data
+php artisan excellence:migrate --seed
+
+# Run migrations with fresh database and seed
+php artisan excellence:migrate --fresh --seed
+```
+
+### Importing From SQL
+
+If you prefer to import the database directly from SQL, you can use the SQL file:
+
+```bash
+mysql -u username -p database_name < excellence_riad.sql
+```
+
+### Database Structure
+
+The database includes the following main tables:
+
+- `users` - System users
+- `students` - Student records
+- `cours` - Regular courses information
+- `communication_courses` - Communication courses information 
+- `student_courses` - Enrollment relationships between students and courses
+- `enrollments` - Historical enrollment records
+
+### Notes
+
+- Migrations will check if tables exist before creating them
+- Custom MySQL functions are created to help with calculations
+- The system properly handles foreign key constraints

@@ -105,4 +105,30 @@ class StudentCourse extends Model
         }
         return 0;
     }
+
+    /**
+     * Get the course name
+     */
+    public function getCourseName()
+    {
+        if ($this->course_id) {
+            return $this->course->matiere;
+        } elseif ($this->communication_course_id) {
+            return $this->communicationCourse->matiere;
+        }
+        return 'N/A';
+    }
+    
+    /**
+     * Get the course type
+     */
+    public function getCourseType()
+    {
+        if ($this->course_id) {
+            return $this->course->type ?? 'regular';
+        } elseif ($this->communication_course_id) {
+            return 'communication';
+        }
+        return 'unknown';
+    }
 } 
