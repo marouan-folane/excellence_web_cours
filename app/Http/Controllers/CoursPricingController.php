@@ -212,8 +212,18 @@ class CoursPricingController extends Controller
     /**
      * Store a newly created course in storage.
      */
+   
     public function store(Request $request)
     {
+        // Debug information
+        \Log::info('Course creation request received', [
+            'all_data' => $request->all(),
+            'course_type' => $request->input('course_type'),
+            'matiere' => $request->input('matiere'),
+            'niveau_scolaire' => $request->input('niveau_scolaire'),
+            'prix' => $request->input('prix'),
+        ]);
+
         // Validate and store a new course
         if ($request->input('course_type') === 'regular') {
             $validated = $request->validate([
@@ -229,6 +239,8 @@ class CoursPricingController extends Controller
             $course->type = 'regular';
             // No longer using is_combined and combined_with fields
             $course->save();
+            
+            \Log::info('Regular course created', ['course_id' => $course->id]);
         } else {
             $validated = $request->validate([
                 'matiere' => 'required|string|max:255',
@@ -238,7 +250,10 @@ class CoursPricingController extends Controller
             $course = new CommunicationCourse();
             $course->matiere = $validated['matiere'];
             $course->niveau_scolaire = $validated['niveau_scolaire'];
+            $course->prix = $request->input('prix', 150); // Default to 150 if not set
             $course->save();
+            
+            \Log::info('Communication course created', ['course_id' => $course->id]);
         }
 
         return redirect()->route('courses.manage')->with('success', 'Course created successfully.');
@@ -280,4 +295,109 @@ class CoursPricingController extends Controller
         
         return redirect()->route('courses.manage')->with('success', 'Course updated successfully.');
     }
+
+    /**
+     * Find a course by ID for detailed view
+     */
+    public function findCourse($id)
+    {
+        $course = Cours::findOrFail($id);
+        
+        // Get enrolled students for this course
+        $enrolledStudents = DB::table('student_courses')
+            ->select('students.*', 'student_courses.enrollment_date', 'student_courses.payment_expiry', 'student_courses.status')
+            ->join('students', 'student_courses.student_id', '=', 'students.id')
+            ->where('student_courses.course_id', $id)
+            ->whereNull('student_courses.deleted_at')
+            ->get();
+        
+        return view('courses.details', [
+            'course' => $course,
+            'enrolledStudents' => $enrolledStudents
+        ]);
+    }
+
+    /**
+     * Delete the specified course from storage.
+     */
+    public function destroy($id)
+    {
+        try {
+            // Find the course
+            $course = Cours::findOrFail($id);
+            
+            // Check if course has any active students enrolled
+            $hasActiveEnrollments = DB::table('student_courses')
+                ->where('course_id', $id)
+                ->whereNull('deleted_at')
+                ->exists();
+            
+            if ($hasActiveEnrollments) {
+                return redirect()->route('courses.manage')
+                    ->with('error', 'Cannot delete course because it has active enrollments.');
+            }
+            
+            // Delete the course
+            $course->delete();
+            
+            return redirect()->route('courses.manage')
+                ->with('success', 'Course deleted successfully.');
+        } catch (\Exception $e) {
+            return redirect()->route('courses.manage')
+                ->with('error', 'Error deleting course: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Show the form for creating a new course.
+     */
+    public function create()
+    {
+        return view('courses.create');
+    }
+
+    /**
+     * Show the form for editing the specified course.
+     */
+    public function edit($id)
+    {
+        $course = Cours::findOrFail($id);
+        return view('courses.edit', compact('course'));
+    }
+
+    /**
+     * Show the form for confirming course deletion.
+     */
+    public function delete($id)
+    {
+        $course = Cours::findOrFail($id);
+        return view('courses.delete', compact('course'));
+    }
+
+    /**
+     * Display enrollments for a specific course.
+     */
+    public function courseEnrollments($id)
+    {
+        $course = Cours::findOrFail($id);
+        $enrollments = $course->enrollments()
+            ->with('student')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return view('courses.enrollments', [
+            'course' => $course,
+            'enrollments' => $enrollments
+        ]);
+    }
+
+    protected $levelNames = [
+        'premiere_school' => 'Première School',
+        '1ac' => '1st Middle School',
+        '2ac' => '2nd Middle School',
+        '3ac' => '3AC',
+        'tronc_commun' => 'Tronc Commun',
+        'deuxieme_annee' => '2ème Année Lycée',
+        'bac' => 'Baccalauréat'
+    ];
 }

@@ -9,6 +9,7 @@ use App\Models\StudentCourse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\PDF;
 
 class StudentController extends Controller
 {
@@ -73,9 +74,12 @@ class StudentController extends Controller
         // Get unique niveau_scolaire values
         $niveau_scolaires = [
             'premiere_school' => 'Première School',
-            '2_first_middle_niveau' => '2nd First Middle Niveau',
+            '1ac' => '1st Middle School',
+            '2ac' => '2nd Middle School',
             '3ac' => '3AC',
-            'high_school' => 'High School'
+            'tronc_commun' => 'Tronc Commun',
+            'deuxieme_annee' => '2ème Année Lycée',
+            'bac' => 'Baccalauréat'
         ];
         
         $courses = Cours::orderBy('matiere')->get();
@@ -88,11 +92,15 @@ class StudentController extends Controller
      */
     public function create()
     {
+        // Add pricing info
         $niveau_scolaires = [
-            'premiere_school' => 'Première School (100 DH per subject)',
-            '2_first_middle_niveau' => '2nd First Middle Niveau (100 DH/subject, SVT+PC: 150 DH)',
-            '3ac' => '3AC (130 DH per subject)',
-            'high_school' => 'High School (150 DH per subject)'
+            'premiere_school' => 'Première School (100 DH/subject)',
+            '1ac' => '1st Middle School (100 DH/subject, SVT+PC: 150 DH)',
+            '2ac' => '2nd Middle School (100 DH/subject, SVT+PC: 150 DH)',
+            '3ac' => '3AC (130 DH/subject)',
+            'tronc_commun' => 'Tronc Commun (150 DH/subject)',
+            'deuxieme_annee' => 'Deuxième Année Lycée (150 DH/subject)',
+            'bac' => 'Baccalauréat (150 DH/subject)'
         ];
 
         // Get regular courses
@@ -177,8 +185,12 @@ class StudentController extends Controller
         $totalPrice = $basePrice * $validated['months'];
         $courseNames = $regularCourses->pluck('matiere')->merge($commCourses->pluck('matiere'))->implode(', ');
         
+        // Create Carbon instances for enrollment date and payment expiry
+        $enrollmentDate = Carbon::parse($validated['enrollment_date']);
+        
         // Calculate payment expiry based on enrollment date and months
-        $paymentExpiry = Carbon::parse($validated['enrollment_date'])->addMonths((int)$validated['months']);
+        // For example, if enrollment_date is 2023-09-01 and months is 3, expiry should be 2023-12-01
+        $paymentExpiry = $enrollmentDate->copy()->addMonths((int)$validated['months']);
         
         // Begin database transaction
         DB::beginTransaction();
@@ -197,35 +209,41 @@ class StudentController extends Controller
                 'status' => $validated['status'],
                 'matiere' => $courseNames,
                 'student_count' => $validated['student_count'],
-                'enrollment_date' => $validated['enrollment_date'],
+                'enrollment_date' => $enrollmentDate,
                 'months' => $validated['months'],
                 'total_price' => $totalPrice
             ]);
 
             // Create enrollment records for each regular course
             foreach ($regularCourses as $course) {
+                $monthlyRevenue = ($course->prix * $validated['student_count']) / 1; // Monthly amount
+                
                 $enrollment = new StudentCourse([
                     'student_id' => $student->id,
                     'course_id' => $course->id,
-                    'enrollment_date' => $validated['enrollment_date'],
+                    'enrollment_date' => $enrollmentDate,
                     'payment_expiry' => $paymentExpiry,
                     'status' => 'active',
                     'months' => $validated['months'],
-                    'paid_amount' => $course->prix * $validated['student_count'] * $validated['months']
+                    'paid_amount' => $course->prix * $validated['student_count'] * $validated['months'],
+                    'monthly_revenue_amount' => $monthlyRevenue
                 ]);
                 $enrollment->save();
             }
             
             // Create enrollment records for each communication course
             foreach ($commCourses as $course) {
+                $monthlyRevenue = ($course->prix * $validated['student_count']) / 1; // Monthly amount
+                
                 $enrollment = new StudentCourse([
                     'student_id' => $student->id,
                     'communication_course_id' => $course->id,
-                    'enrollment_date' => $validated['enrollment_date'],
+                    'enrollment_date' => $enrollmentDate,
                     'payment_expiry' => $paymentExpiry,
                     'status' => 'active',
                     'months' => $validated['months'],
-                    'paid_amount' => $course->prix * $validated['student_count'] * $validated['months']
+                    'paid_amount' => $course->prix * $validated['student_count'] * $validated['months'],
+                    'monthly_revenue_amount' => $monthlyRevenue
                 ]);
                 $enrollment->save();
             }
@@ -297,7 +315,17 @@ class StudentController extends Controller
             ->pluck('communication_course_id')
             ->toArray();
 
-        return view('students.edit', compact('student', 'courses', 'communicationCourses', 'selectedRegularCourseIds', 'selectedCommCourseIds'));
+        $niveau_scolaires = [
+            'premiere_school' => 'Première School',
+            '1ac' => '1st Middle School',
+            '2ac' => '2nd Middle School',
+            '3ac' => '3AC',
+            'tronc_commun' => 'Tronc Commun',
+            'deuxieme_annee' => '2ème Année Lycée',
+            'bac' => 'Baccalauréat'
+        ];
+
+        return view('students.edit', compact('student', 'courses', 'communicationCourses', 'selectedRegularCourseIds', 'selectedCommCourseIds', 'niveau_scolaires'));
     }
 
     /**
@@ -317,12 +345,15 @@ class StudentController extends Controller
             'comm_course_ids' => 'nullable|array',
             'comm_course_ids.*' => 'exists:communication_courses,id',
             'months' => 'required|integer|min:1',
-            'student_count' => 'required|integer|min:1',
+            'student_count' => 'nullable|integer|min:1', // Made optional as we'll default to 1
             'status' => 'required|in:active,inactive',
             'payment_expiry' => 'required|date',
             'paid_amount' => 'required|numeric|min:0',
             'enrollment_date' => 'required|date'
         ]);
+        
+        // Always use 1 for student_count
+        $validated['student_count'] = 1;
         
         // Validate that at least one course is selected
         if (empty($validated['course_ids']) && empty($validated['comm_course_ids'])) {
@@ -346,13 +377,15 @@ class StudentController extends Controller
         $totalPrice = $basePrice * $validated['months'];
         $courseNames = $regularCourses->pluck('matiere')->merge($commCourses->pluck('matiere'))->implode(', ');
         
-        // Use payment_expiry directly instead of calculating based on enrollment_date + months
-        // This ensures the payment expiry date from the form is used directly
-        $paymentExpiry = Carbon::parse($validated['payment_expiry'])->format('Y-m-d');
+        // Parse the dates properly
+        $enrollmentDate = Carbon::parse($request->enrollment_date)->format('Y-m-d');
+        $paymentExpiry = Carbon::parse($request->payment_expiry)->format('Y-m-d');
         
         // Log for debugging
-        \Log::info("Updating student {$student->id}", [
-            'payment_expiry_form' => $validated['payment_expiry'],
+        \Log::info("Updating student {$student->id} - Dates before SQL update", [
+            'enrollment_date_input' => $request->enrollment_date,
+            'payment_expiry_input' => $request->payment_expiry,
+            'enrollment_date_parsed' => $enrollmentDate,
             'payment_expiry_parsed' => $paymentExpiry
         ]);
 
@@ -360,25 +393,35 @@ class StudentController extends Controller
         DB::beginTransaction();
         
         try {
-            // Update student record with direct payment_expiry from the form
-            $student->update([
-                'name' => $validated['name'],
-                'email' => $validated['email'] ?? null,
-                'phone' => $validated['phone'] ?? null,
-                'parent_name' => $validated['parent_name'] ?? null,
-                'address' => $validated['address'] ?? null,
-                'niveau_scolaire' => $validated['niveau_scolaire'],
-                'payment_expiry' => $paymentExpiry,
-                'paid_amount' => $validated['paid_amount'],
-                'status' => $validated['status'],
-                'matiere' => $courseNames,
-                'student_count' => $validated['student_count'],
-                'enrollment_date' => Carbon::parse($validated['enrollment_date'])->format('Y-m-d'),
-                'months' => $validated['months'],
-                'total_price' => $totalPrice
-            ]);
+            // Update student record directly in the database to bypass model mutators
+            DB::table('students')
+                ->where('id', $student->id)
+                ->update([
+                    'name' => $validated['name'],
+                    'email' => $validated['email'] ?? null,
+                    'phone' => $validated['phone'] ?? null,
+                    'parent_name' => $validated['parent_name'] ?? null,
+                    'address' => $validated['address'] ?? null,
+                    'niveau_scolaire' => $validated['niveau_scolaire'],
+                    'payment_expiry' => $paymentExpiry,
+                    'paid_amount' => $validated['paid_amount'],
+                    'status' => $validated['status'],
+                    'matiere' => $courseNames,
+                    'student_count' => $validated['student_count'],
+                    'enrollment_date' => $enrollmentDate,
+                    'months' => $validated['months'],
+                    'total_price' => $totalPrice,
+                    'updated_at' => now()
+                ]);
             
-            // Instead of deleting and recreating, we'll update existing enrollments and only create new ones
+            // Reload the student to get fresh data
+            $student = Student::find($student->id);
+            
+            // Log for debugging student update
+            \Log::info("Student updated - ID: {$student->id} - Dates after update", [
+                'enrollment_date' => $student->enrollment_date,
+                'payment_expiry' => $student->payment_expiry
+            ]);
             
             // Get existing course enrollments
             $existingRegularEnrollments = $student->enrollments()
@@ -396,31 +439,41 @@ class StudentController extends Controller
             $keepRegularCourseIds = $regularCourses->pluck('id')->toArray();
             $keepCommCourseIds = $commCourses->pluck('id')->toArray();
             
-            // Delete regular course enrollments that aren't in the new selection
-            $student->enrollments()
-                ->whereNotNull('course_id')
-                ->whereNotIn('course_id', $keepRegularCourseIds)
-                ->delete();
+            // Only delete if specific course IDs were provided
+            if (isset($validated['course_ids'])) {
+                // Delete regular course enrollments that aren't in the new selection
+                $student->enrollments()
+                    ->whereNotNull('course_id')
+                    ->whereNotIn('course_id', $keepRegularCourseIds)
+                    ->delete();
+            }
                 
-            // Delete communication course enrollments that aren't in the new selection
-            $student->enrollments()
-                ->whereNotNull('communication_course_id')
-                ->whereNotIn('communication_course_id', $keepCommCourseIds)
-                ->delete();
+            // Only delete if specific course IDs were provided
+            if (isset($validated['comm_course_ids'])) {
+                // Delete communication course enrollments that aren't in the new selection
+                $student->enrollments()
+                    ->whereNotNull('communication_course_id')
+                    ->whereNotIn('communication_course_id', $keepCommCourseIds)
+                    ->delete();
+            }
             
             // Update existing enrollments and create new ones for regular courses
             foreach ($regularCourses as $course) {
                 // Check if this enrollment already exists
                 if (in_array($course->id, $existingRegularEnrollments)) {
-                    // Update existing enrollment
-                    $student->enrollments()
+                    // Update using direct SQL to avoid model mutators
+                    DB::table('student_courses')
+                        ->where('student_id', $student->id)
                         ->where('course_id', $course->id)
+                        ->whereNull('deleted_at')
                         ->update([
-                            'enrollment_date' => Carbon::parse($validated['enrollment_date'])->format('Y-m-d'),
+                            'enrollment_date' => $enrollmentDate,
                             'payment_expiry' => $paymentExpiry,
                             'status' => $validated['status'],
                             'months' => $validated['months'],
-                            'paid_amount' => $course->prix * $validated['student_count'] * $validated['months']
+                            'paid_amount' => $course->prix * $validated['student_count'] * $validated['months'],
+                            'monthly_revenue_amount' => $course->prix * $validated['student_count'],
+                            'updated_at' => now()
                         ]);
                 } else {
                     try {
@@ -431,42 +484,51 @@ class StudentController extends Controller
                             ->first();
                             
                         if ($existingRecord) {
-                            // If it exists, restore and update it
+                            // If it exists, restore and update it using direct SQL
                             $existingRecord->restore();
-                            $existingRecord->update([
-                                'enrollment_date' => Carbon::parse($validated['enrollment_date'])->format('Y-m-d'),
-                                'payment_expiry' => $paymentExpiry,
-                                'status' => $validated['status'],
-                                'months' => $validated['months'],
-                                'paid_amount' => $course->prix * $validated['student_count'] * $validated['months']
-                            ]);
+                            DB::table('student_courses')
+                                ->where('id', $existingRecord->id)
+                                ->update([
+                                    'enrollment_date' => $enrollmentDate,
+                                    'payment_expiry' => $paymentExpiry,
+                                    'status' => $validated['status'],
+                                    'months' => $validated['months'],
+                                    'paid_amount' => $course->prix * $validated['student_count'] * $validated['months'],
+                                    'monthly_revenue_amount' => $course->prix * $validated['student_count'],
+                                    'updated_at' => now(),
+                                    'deleted_at' => null
+                                ]);
                         } else {
-                            // Create new enrollment if no existing record
-                            $enrollment = new StudentCourse([
+                            // Create new enrollment using direct SQL
+                            DB::table('student_courses')->insert([
                                 'student_id' => $student->id,
                                 'course_id' => $course->id,
-                                'enrollment_date' => Carbon::parse($validated['enrollment_date'])->format('Y-m-d'),
+                                'enrollment_date' => $enrollmentDate,
                                 'payment_expiry' => $paymentExpiry,
                                 'status' => $validated['status'],
                                 'months' => $validated['months'],
-                                'paid_amount' => $course->prix * $validated['student_count'] * $validated['months']
+                                'paid_amount' => $course->prix * $validated['student_count'] * $validated['months'],
+                                'monthly_revenue_amount' => $course->prix * $validated['student_count'],
+                                'created_at' => now(),
+                                'updated_at' => now()
                             ]);
-                            $enrollment->save();
                         }
                     } catch (\Exception $e) {
                         // If there's a duplicate key error, find the record and update it
                         if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
-                            StudentCourse::where('student_id', $student->id)
+                            DB::table('student_courses')
+                                ->where('student_id', $student->id)
                                 ->where('course_id', $course->id)
                                 ->update([
-                                    'enrollment_date' => Carbon::parse($validated['enrollment_date'])->format('Y-m-d'),
+                                    'enrollment_date' => $enrollmentDate,
                                     'payment_expiry' => $paymentExpiry,
                                     'status' => $validated['status'],
                                     'months' => $validated['months'],
-                                    'paid_amount' => $course->prix * $validated['student_count'] * $validated['months']
+                                    'paid_amount' => $course->prix * $validated['student_count'] * $validated['months'],
+                                    'monthly_revenue_amount' => $course->prix * $validated['student_count'],
+                                    'updated_at' => now()
                                 ]);
                         } else {
-                            // If it's a different error, rethrow it
                             throw $e;
                         }
                     }
@@ -475,63 +537,75 @@ class StudentController extends Controller
             
             // Update existing enrollments and create new ones for communication courses
             foreach ($commCourses as $course) {
-                // Check if this enrollment already exists
                 if (in_array($course->id, $existingCommEnrollments)) {
-                    // Update existing enrollment
-                    $student->enrollments()
+                    // Update using direct SQL to avoid model mutators
+                    DB::table('student_courses')
+                        ->where('student_id', $student->id)
                         ->where('communication_course_id', $course->id)
+                        ->whereNull('deleted_at')
                         ->update([
-                            'enrollment_date' => Carbon::parse($validated['enrollment_date'])->format('Y-m-d'),
+                            'enrollment_date' => $enrollmentDate,
                             'payment_expiry' => $paymentExpiry,
                             'status' => $validated['status'],
                             'months' => $validated['months'],
-                            'paid_amount' => $course->prix * $validated['student_count'] * $validated['months']
+                            'paid_amount' => $course->prix * $validated['student_count'] * $validated['months'],
+                            'monthly_revenue_amount' => $course->prix * $validated['student_count'],
+                            'updated_at' => now()
                         ]);
                 } else {
                     try {
-                        // First check if there's a soft-deleted record that might cause a duplicate key issue
+                        // Check for soft-deleted records
                         $existingRecord = StudentCourse::withTrashed()
                             ->where('student_id', $student->id)
                             ->where('communication_course_id', $course->id)
                             ->first();
                             
                         if ($existingRecord) {
-                            // If it exists, restore and update it
+                            // Restore and update using direct SQL
                             $existingRecord->restore();
-                            $existingRecord->update([
-                                'enrollment_date' => Carbon::parse($validated['enrollment_date'])->format('Y-m-d'),
-                                'payment_expiry' => $paymentExpiry,
-                                'status' => $validated['status'],
-                                'months' => $validated['months'],
-                                'paid_amount' => $course->prix * $validated['student_count'] * $validated['months']
-                            ]);
-                        } else {
-                            // Create new enrollment if no existing record
-                            $enrollment = new StudentCourse([
-                                'student_id' => $student->id,
-                                'communication_course_id' => $course->id,
-                                'enrollment_date' => Carbon::parse($validated['enrollment_date'])->format('Y-m-d'),
-                                'payment_expiry' => $paymentExpiry,
-                                'status' => $validated['status'],
-                                'months' => $validated['months'],
-                                'paid_amount' => $course->prix * $validated['student_count'] * $validated['months']
-                            ]);
-                            $enrollment->save();
-                        }
-                    } catch (\Exception $e) {
-                        // If there's a duplicate key error, find the record and update it
-                        if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
-                            StudentCourse::where('student_id', $student->id)
-                                ->where('communication_course_id', $course->id)
+                            DB::table('student_courses')
+                                ->where('id', $existingRecord->id)
                                 ->update([
-                                    'enrollment_date' => Carbon::parse($validated['enrollment_date'])->format('Y-m-d'),
+                                    'enrollment_date' => $enrollmentDate,
                                     'payment_expiry' => $paymentExpiry,
                                     'status' => $validated['status'],
                                     'months' => $validated['months'],
-                                    'paid_amount' => $course->prix * $validated['student_count'] * $validated['months']
+                                    'paid_amount' => $course->prix * $validated['student_count'] * $validated['months'],
+                                    'monthly_revenue_amount' => $course->prix * $validated['student_count'],
+                                    'updated_at' => now(),
+                                    'deleted_at' => null
                                 ]);
                         } else {
-                            // If it's a different error, rethrow it
+                            // Create new record using direct SQL
+                            DB::table('student_courses')->insert([
+                                'student_id' => $student->id,
+                                'communication_course_id' => $course->id,
+                                'enrollment_date' => $enrollmentDate,
+                                'payment_expiry' => $paymentExpiry,
+                                'status' => $validated['status'],
+                                'months' => $validated['months'],
+                                'paid_amount' => $course->prix * $validated['student_count'] * $validated['months'],
+                                'monthly_revenue_amount' => $course->prix * $validated['student_count'],
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        // Handle duplicate key errors
+                        if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                            DB::table('student_courses')
+                                ->where('student_id', $student->id)
+                                ->where('communication_course_id', $course->id)
+                                ->update([
+                                    'enrollment_date' => $enrollmentDate,
+                                    'payment_expiry' => $paymentExpiry,
+                                    'status' => $validated['status'],
+                                    'months' => $validated['months'],
+                                    'paid_amount' => $course->prix * $validated['student_count'] * $validated['months'],
+                                    'monthly_revenue_amount' => $course->prix * $validated['student_count'],
+                                    'updated_at' => now()
+                                ]);
+                        } else {
                             throw $e;
                         }
                     }
@@ -594,7 +668,12 @@ class StudentController extends Controller
         $query = Student::with(['course', 'communicationCourse'])
             ->where('status', 'active')
             ->where('payment_expiry', '>', $today)
-            ->where('payment_expiry', '<=', $fiveDaysLater);
+            ->where('payment_expiry', '<=', $fiveDaysLater)
+            // Only include students whose enrollment has already started
+            ->where(function($q) use ($today) {
+                $q->where('enrollment_date', '<=', $today)
+                  ->orWhereNull('enrollment_date');
+            });
             
         // Apply level filter if provided
         if ($request->filled('level')) {
@@ -606,5 +685,79 @@ class StudentController extends Controller
             ->withQueryString(); // Maintain query parameters in pagination links
             
         return view('students.near-expiry', compact('students'));
+    }
+
+    /**
+     * Generate a receipt for a student.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function generateReceipt(Request $request, $id)
+    {
+        // Get selected language from request
+        $pdfLanguage = $request->input('pdf_language', app()->getLocale());
+        
+        // Temporarily switch to selected language for PDF generation
+        $originalLocale = app()->getLocale();
+        app()->setLocale($pdfLanguage);
+        
+        $student = Student::with(['enrollments.course', 'enrollments.communicationCourse'])->findOrFail($id);
+        
+        // Prepare course data
+        $courses = [];
+        foreach ($student->enrollments as $enrollment) {
+            $course = $enrollment->course ?? $enrollment->communicationCourse ?? null;
+            if (!$course) continue;
+            
+            $courses[] = (object)[
+                'course' => (object)[
+                    'name' => $course->matiere,
+                    'type' => $enrollment->course ? 'regular' : 'communication',
+                    'prix' => $course->prix
+                ]
+            ];
+        }
+        
+        // Calculate current monthly revenue
+        $student->current_monthly_revenue = 0;
+        $currentMonth = Carbon::now()->startOfMonth();
+        
+        foreach ($student->enrollments as $enrollment) {
+            $student->current_monthly_revenue += $enrollment->monthly_revenue_amount ?? 0;
+        }
+        
+        // Generate receipt number
+        $receipt_number = 'RCPT-' . str_pad($student->id, 5, '0', STR_PAD_LEFT) . '-' . date('Ymd');
+        
+        // Configure PDF options
+        $options = [
+            'default_font' => 'DejaVu Sans'
+        ];
+        
+        // Set RTL mode if Arabic is the selected language
+        if ($pdfLanguage === 'ar') {
+            $options['isRtl'] = true;
+        }
+        
+        // Configure PDF
+        $pdf = PDF::loadView('students.receipt', [
+            'student' => $student,
+            'courses' => $courses,
+            'receipt_number' => $receipt_number
+        ]);
+        
+        // Apply RTL and other configurations for Arabic
+        if ($pdfLanguage === 'ar') {
+            $pdf->setOption('isRtl', true);
+            $pdf->setOption('defaultFont', 'DejaVu Sans');
+            $pdf->setPaper('a4');
+        }
+        
+        // Restore original locale
+        app()->setLocale($originalLocale);
+        
+        return $pdf->stream("receipt_{$student->id}.pdf");
     }
 }

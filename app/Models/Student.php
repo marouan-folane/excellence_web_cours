@@ -33,10 +33,11 @@ class Student extends Model
         'student_count' => 'integer',
         'paid_amount' => 'float',
         'total_price' => 'float',
-        'payment_expiry' => 'date',
-        'enrollment_date' => 'date',
+        'payment_expiry' => 'datetime',
+        'enrollment_date' => 'datetime',
         'status' => 'string',
-        'months' => 'integer'
+        'months' => 'integer',
+        'courses_list' => 'array'
     ];
 
     /**
@@ -79,6 +80,12 @@ class Student extends Model
         if (!$this->payment_expiry) {
             return true;
         }
+        
+        // If enrollment hasn't started yet, it's definitely not expired
+        if ($this->enrollment_date && $this->enrollment_date->gt(Carbon::now())) {
+            return false;
+        }
+        
         return Carbon::now()->startOfDay()->gt($this->payment_expiry);
     }
 
@@ -90,6 +97,14 @@ class Student extends Model
         if (!$this->payment_expiry) {
             return 0;
         }
+        
+        // If enrollment date is in the future, we should consider days from enrollment date, not today
+        if ($this->enrollment_date && $this->enrollment_date->gt(Carbon::now())) {
+            // Return days between enrollment_date and payment_expiry
+            return max(0, $this->enrollment_date->startOfDay()->diffInDays($this->payment_expiry, false));
+        }
+        
+        // For current or past enrollments, calculate from today
         return max(0, Carbon::now()->startOfDay()->diffInDays($this->payment_expiry, false));
     }
 
@@ -151,7 +166,9 @@ class Student extends Model
      */
     public function setPaymentExpiryAttribute($value)
     {
-        $this->attributes['payment_expiry'] = Carbon::parse($value)->format('Y-m-d');
+        if ($value) {
+            $this->attributes['payment_expiry'] = Carbon::parse($value)->format('Y-m-d');
+        }
     }
     
     /**
@@ -159,6 +176,8 @@ class Student extends Model
      */
     public function setEnrollmentDateAttribute($value)
     {
-        $this->attributes['enrollment_date'] = Carbon::parse($value)->format('Y-m-d');
+        if ($value) {
+            $this->attributes['enrollment_date'] = Carbon::parse($value)->format('Y-m-d');
+        }
     }
 }

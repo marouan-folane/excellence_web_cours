@@ -14,6 +14,13 @@ return [
     |
     */
 
+    'mailgun' => [
+        'domain' => env('MAILGUN_DOMAIN'),
+        'secret' => env('MAILGUN_SECRET'),
+        'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
+        'scheme' => 'https',
+    ],
+
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],
@@ -32,6 +39,22 @@ return [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
+        ],
+    ],
+
+    'pdf' => [
+        'tempDir' => storage_path('app'),
+        'options' => [
+            'font_dir' => storage_path('fonts/'),
+            'font_cache' => storage_path('fonts/'),
+            'temp_dir' => storage_path('app'),
+            'font_path' => storage_path('fonts/'),
+            'chroot' => realpath(base_path()),
+            'enable_html5_parser' => true,
+            'defaultFont' => 'Arial',
+            'defaultMediaType' => 'screen',
+            'isPhpEnabled' => true,
+            'isRemoteEnabled' => true,
         ],
     ],
 

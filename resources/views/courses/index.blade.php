@@ -14,7 +14,21 @@
             </div>
             <div class="card-body">
                 @foreach($regularCourses as $niveau => $courses)
-                <h5>{{ ucfirst(str_replace('_', ' ', $niveau)) }}</h5>
+                <h5>
+                    @if($niveau == 'premiere_school')
+                        Première École
+                    @elseif($niveau == '1ac')
+                        1ère Année Collège
+                    @elseif($niveau == '2ac')
+                        2ème Année Collège
+                    @elseif($niveau == '3ac')
+                        3ème Année Collège
+                    @elseif($niveau == 'high_school')
+                        Lycée
+                    @else
+                        {{ ucfirst(str_replace('_', ' ', $niveau)) }}
+                    @endif
+                </h5>
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
@@ -33,7 +47,22 @@
                         </tbody>
                     </table>
                 </div>
-                <a href="{{ route('courses.level', $niveau) }}" class="btn btn-outline-primary mb-4">Enroll Students in {{ ucfirst(str_replace('_', ' ', $niveau)) }}</a>
+                <a href="{{ route('courses.level', $niveau) }}" class="btn btn-outline-primary mb-4">
+                    Enroll Students in 
+                    @if($niveau == 'premiere_school')
+                        Première École
+                    @elseif($niveau == '1ac')
+                        1ère Année Collège
+                    @elseif($niveau == '2ac')
+                        2ème Année Collège
+                    @elseif($niveau == '3ac')
+                        3ème Année Collège
+                    @elseif($niveau == 'high_school')
+                        Lycée
+                    @else
+                        {{ ucfirst(str_replace('_', ' ', $niveau)) }}
+                    @endif
+                </a>
                 @endforeach
             </div>
         </div>
@@ -46,7 +75,21 @@
             </div>
             <div class="card-body">
                 @foreach($communicationCourses as $niveau => $courses)
-                <h5>{{ ucfirst(str_replace('_', ' ', $niveau)) }}</h5>
+                <h5>
+                    @if($niveau == 'premiere_school')
+                        Première École
+                    @elseif($niveau == '1ac')
+                        1ère Année Collège
+                    @elseif($niveau == '2ac')
+                        2ème Année Collège
+                    @elseif($niveau == '3ac')
+                        3ème Année Collège
+                    @elseif($niveau == 'high_school')
+                        Lycée
+                    @else
+                        {{ ucfirst(str_replace('_', ' ', $niveau)) }}
+                    @endif
+                </h5>
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>

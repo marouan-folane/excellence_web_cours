@@ -66,10 +66,10 @@
                                 @if(session('locale') == 'fr')
                                     @if($levelKey == 'premiere_school')
                                         Première École
-                                    @elseif($levelKey == '2_first_middle_niveau')
-                                        2ème Niveau Collège
-                                    @elseif($levelKey == '3ac')
-                                        3ème Année Collège
+                                    @elseif($levelKey == '1ac')
+                                        1ère Année Collège
+                                    @elseif($levelKey == '2ac')
+                                        2ème Année Collège
                                     @elseif($levelKey == 'high_school')
                                         Lycée
                                     @else
@@ -78,10 +78,10 @@
                                 @elseif(session('locale') == 'ar')
                                     @if($levelKey == 'premiere_school')
                                         المدرسة الابتدائية
-                                    @elseif($levelKey == '2_first_middle_niveau')
-                                        المستوى الثاني متوسط
-                                    @elseif($levelKey == '3ac')
-                                        السنة الثالثة متوسط
+                                    @elseif($levelKey == '1ac')
+                                        السنة الأولى متوسط
+                                    @elseif($levelKey == '2ac')
+                                        السنة الثانية متوسط
                                     @elseif($levelKey == 'high_school')
                                         الثانوية
                                     @else
@@ -194,10 +194,10 @@
                             @if(session('locale') == 'fr')
                                 @if($levelKey == 'premiere_school')
                                     Première École
-                                @elseif($levelKey == '2_first_middle_niveau')
-                                    2ème Niveau Collège
-                                @elseif($levelKey == '3ac')
-                                    3ème Année Collège
+                                @elseif($levelKey == '1ac')
+                                    1ère Année Collège
+                                @elseif($levelKey == '2ac')
+                                    2ème Année Collège
                                 @elseif($levelKey == 'high_school')
                                     Lycée
                                 @else
@@ -206,10 +206,10 @@
                             @elseif(session('locale') == 'ar')
                                 @if($levelKey == 'premiere_school')
                                     المدرسة الابتدائية
-                                @elseif($levelKey == '2_first_middle_niveau')
-                                    المستوى الثاني متوسط
-                                @elseif($levelKey == '3ac')
-                                    السنة الثالثة متوسط
+                                @elseif($levelKey == '1ac')
+                                    السنة الأولى متوسط
+                                @elseif($levelKey == '2ac')
+                                    السنة الثانية متوسط
                                 @elseif($levelKey == 'high_school')
                                     الثانوية
                                 @else
@@ -382,10 +382,10 @@
                                 @if(session('locale') == 'fr')
                                     @if($item->level == 'premiere_school')
                                         Première École
-                                    @elseif($item->level == '2_first_middle_niveau')
-                                        2ème Niveau Collège
-                                    @elseif($item->level == '3ac')
-                                        3ème Année Collège
+                                    @elseif($item->level == '1ac')
+                                        1ère Année Collège
+                                    @elseif($item->level == '2ac')
+                                        2ème Année Collège
                                     @elseif($item->level == 'high_school')
                                         Lycée
                                     @else
@@ -394,10 +394,10 @@
                                 @elseif(session('locale') == 'ar')
                                     @if($item->level == 'premiere_school')
                                         المدرسة الابتدائية
-                                    @elseif($item->level == '2_first_middle_niveau')
-                                        المستوى الثاني متوسط
-                                    @elseif($item->level == '3ac')
-                                        السنة الثالثة متوسط
+                                    @elseif($item->level == '1ac')
+                                        السنة الأولى متوسط
+                                    @elseif($item->level == '2ac')
+                                        السنة الثانية متوسط
                                     @elseif($item->level == 'high_school')
                                         الثانوية
                                     @else
@@ -406,10 +406,10 @@
                                 @else
                                     @if($item->level == 'premiere_school')
                                         Primary School
-                                    @elseif($item->level == '2_first_middle_niveau')
-                                        2nd Level Middle School
-                                    @elseif($item->level == '3ac')
-                                        3rd Year Middle School
+                                    @elseif($item->level == '1ac')
+                                        1st Middle School
+                                    @elseif($item->level == '2ac')
+                                        2nd Middle School
                                     @elseif($item->level == 'high_school')
                                         High School
                                     @else

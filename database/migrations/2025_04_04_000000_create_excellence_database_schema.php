@@ -36,7 +36,7 @@ return new class extends Migration
                 $table->id();
                 $table->string('matiere', 100);
                 $table->string('niveau_scolaire', 100);
-                $table->decimal('prix', 10, 2);
+                $table->decimal('prix', 10, 2)->default(150.00);
                 $table->timestamps();
                 
                 $table->unique(['matiere', 'niveau_scolaire']);
@@ -126,7 +126,7 @@ return new class extends Migration
                 $table->id();
                 $table->string('username', 50)->unique();
                 $table->string('email', 100)->unique();
-                $table->string('password_hash', 255);
+                $table->string('password', 255);
                 $table->timestamp('created_at')->useCurrent();
                 $table->rememberToken();
             });
@@ -166,6 +166,7 @@ return new class extends Migration
                 $table->date('enrollment_date');
                 $table->date('payment_expiry')->nullable();
                 $table->decimal('paid_amount', 10, 2)->default(0.00);
+                $table->decimal('monthly_revenue_amount', 10, 2)->default(0.00)->comment('Monthly revenue amount');
                 $table->string('status')->default('active');
                 $table->timestamps();
                 $table->string('months')->nullable();

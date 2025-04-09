@@ -69,12 +69,7 @@
                             <label for="niveau_scolaire" class="block text-sm font-medium text-gray-700 mb-1">School Level *</label>
                             <select id="niveau_scolaire" name="niveau_scolaire" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
                                 <option value="">Select Level</option>
-                                @foreach([
-                                    'premiere_school' => 'Première School',
-                                    '2_first_middle_niveau' => '2nd First Middle Niveau',
-                                    '3ac' => '3AC',
-                                    'high_school' => 'High School'
-                                ] as $value => $label)
+                                @foreach($niveau_scolaires as $value => $label)
                                     <option value="{{ $value }}" {{ old('niveau_scolaire', $student->niveau_scolaire) == $value ? 'selected' : '' }}>
                                         {{ $label }}
                                     </option>
@@ -139,6 +134,7 @@
                             </div>
                         </div>
                         
+                        <!-- Hidden field for student_count, always value 1 -->
                         <input type="hidden" name="student_count" value="1">
                     </div>
                 </div>
@@ -168,8 +164,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const monthsInput = document.getElementById('months');
     
     // Setup data
-    const selectedRegularCourseIds = @json($student->courses ? $student->courses->pluck('id') : []);
-    const selectedCommCourseIds = @json($student->communicationCourses ? $student->communicationCourses->pluck('id') : []);
+    const selectedRegularCourseIds = @json($selectedRegularCourseIds);
+    const selectedCommCourseIds = @json($selectedCommCourseIds);
     let courses = @json($courses);
     let communicationCourses = @json($communicationCourses);
     
@@ -181,7 +177,32 @@ document.addEventListener('DOMContentLoaded', function() {
         const levelCommCourses = communicationCourses.filter(course => 
             course.niveau_scolaire === selectedLevel || course.niveau_scolaire === 'all');
         
+        // Check if we already have existing courses
+        const hasExistingRegularCourses = selectedRegularCourseIds.length > 0;
+        const hasExistingCommCourses = selectedCommCourseIds.length > 0;
+        
         let html = '';
+        
+        // Show banner if student has existing courses
+        if (hasExistingRegularCourses || hasExistingCommCourses) {
+            html += `
+                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-blue-700">
+                                This student already has courses assigned. 
+                                <strong>Existing courses will be preserved unless unchecked.</strong>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
         
         // Regular Courses Section
         if (levelCourses.length > 0) {
@@ -387,6 +408,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     enrollmentDateInput.addEventListener('change', updatePaymentExpiry);
+    
+    // Add event listener for form submission to log values
+    document.getElementById('studentForm').addEventListener('submit', function(e) {
+        console.log('Submitting form with dates:', {
+            enrollmentDate: enrollmentDateInput.value,
+            paymentExpiry: paymentExpiryInput.value
+        });
+    });
     
     // Load courses based on initial level
     updateCourses();

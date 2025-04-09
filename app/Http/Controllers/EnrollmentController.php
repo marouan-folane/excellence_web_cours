@@ -20,7 +20,8 @@ class EnrollmentController extends Controller
     {
         $schoolLevels = [
             'premiere_school' => 'Première École',
-            '2_first_middle_niveau' => '2ème Niveau Collège',
+            '1ac' => '1ère Année Collège',
+            '2ac' => '2ème Année Collège',
             '3ac' => '3éme Année Collège',
             'high_school' => 'Lycée'
         ];
@@ -45,12 +46,16 @@ class EnrollmentController extends Controller
         // Handle pre-selected level from URL
         $selectedLevel = $request->query('level');
         
+        // Get redirect parameter if it exists
+        $redirect = $request->query('redirect');
+        
         return view('enrollments.create', compact(
             'schoolLevels', 
             'regularCourses', 
             'communicationCourses',
             'allCommunicationCourses',
-            'selectedLevel'
+            'selectedLevel',
+            'redirect'
         ));
     }
     
@@ -70,6 +75,8 @@ class EnrollmentController extends Controller
             'phone' => 'required|string|max:20',
             'parent_name' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:500',
+            'enrollment_date' => 'nullable|date',
+            'redirect' => 'nullable|string', // Add redirect parameter
         ]);
         
         // Create the student record
@@ -82,8 +89,8 @@ class EnrollmentController extends Controller
         $student->niveau_scolaire = $validated['niveau_scolaire'];
         $student->student_count = $validated['student_count'];
         $student->status = 'active';
-        $student->enrollment_date = Carbon::now();
-        $student->payment_expiry = Carbon::now()->addMonths($validated['months']);
+        $student->enrollment_date = Carbon::parse($validated['enrollment_date'] ?? now());
+        $student->payment_expiry = Carbon::parse($validated['enrollment_date'] ?? now())->addMonths((int)$validated['months']);
         $student->save();
         
         $totalPrice = 0;
@@ -94,8 +101,8 @@ class EnrollmentController extends Controller
             
             $enrollment = new StudentCourse();
             $enrollment->student_id = $student->id;
-            $enrollment->enrollment_date = Carbon::now();
-            $enrollment->payment_expiry = Carbon::now()->addMonths($validated['months']);
+            $enrollment->enrollment_date = Carbon::parse($validated['enrollment_date'] ?? now());
+            $enrollment->payment_expiry = Carbon::parse($validated['enrollment_date'] ?? now())->addMonths((int)$validated['months']);
             $enrollment->status = 'active';
             $enrollment->months = $validated['months'];
             
@@ -103,10 +110,14 @@ class EnrollmentController extends Controller
                 $course = Cours::findOrFail($courseId);
                 $enrollment->course_id = $courseId;
                 $enrollment->paid_amount = $course->prix * $student->student_count * $validated['months'];
+                // Calculate monthly revenue
+                $enrollment->monthly_revenue_amount = $course->prix * $student->student_count;
             } else {
                 $course = CommunicationCourse::findOrFail($courseId);
                 $enrollment->communication_course_id = $courseId;
                 $enrollment->paid_amount = $course->prix * $student->student_count * $validated['months'];
+                // Calculate monthly revenue
+                $enrollment->monthly_revenue_amount = $course->prix * $student->student_count;
             }
             
             $enrollment->save();
@@ -118,6 +129,13 @@ class EnrollmentController extends Controller
         $student->paid_amount = $totalPrice; // Assuming full payment at enrollment
         $student->save();
         
+        // Check if we need to redirect to a specific page
+        if (isset($validated['redirect']) && $validated['redirect'] === 'dashboard') {
+            return redirect()->route('dashboard')
+                ->with('success', 'Enrollment created successfully!');
+        }
+        
+        // Default redirect to enrollments index
         return redirect()->route('enrollments.index')
             ->with('success', 'Enrollment created successfully!');
     }
@@ -130,64 +148,133 @@ class EnrollmentController extends Controller
         // Get school levels
         $schoolLevels = [
             'premiere_school' => 'Première École',
-            '2_first_middle_niveau' => '2ème Niveau Collège',
+            '1ac' => '1ère Année Collège',
+            '2ac' => '2ème Année Collège',
             '3ac' => '3éme Année Collège',
             'high_school' => 'Lycée'
         ];
 
-        // Get revenue by regular course and level with filters
-        $regularRevenueQuery = StudentCourse::join('students', 'student_courses.student_id', '=', 'students.id')
-            ->join('cours', 'student_courses.course_id', '=', 'cours.id')
-            ->whereNotNull('student_courses.course_id')
-            ->where('students.status', 'active');
+        // Get active enrollments
+        $activeEnrollments = StudentCourse::with(['student', 'course', 'communicationCourse'])
+            ->where('status', 'active')
+            ->where(function($query) {
+                $query->where('enrollment_date', '<=', Carbon::now())
+                      ->orWhereNull('enrollment_date');
+            });
             
         // Apply level filter if set
         if ($request->filled('level')) {
-            $regularRevenueQuery->where('students.niveau_scolaire', $request->level);
+            $activeEnrollments->whereHas('student', function($query) use ($request) {
+                $query->where('niveau_scolaire', $request->level);
+            });
         }
         
         // Apply subject search if set
         if ($request->filled('search')) {
-            $regularRevenueQuery->where('cours.matiere', 'LIKE', '%' . $request->search . '%');
+            $activeEnrollments->where(function($query) use ($request) {
+                $query->whereHas('course', function($q) use ($request) {
+                    $q->where('matiere', 'LIKE', '%' . $request->search . '%');
+                })->orWhereHas('communicationCourse', function($q) use ($request) {
+                    $q->where('matiere', 'LIKE', '%' . $request->search . '%');
+                });
+            });
         }
         
-        // Select and group query - make sure we count actual students, not just enrollments
-        $regularRevenue = $regularRevenueQuery->select(
-                'cours.matiere as subject',
-                'students.niveau_scolaire as level',
-                DB::raw('SUM(student_courses.paid_amount) as total_revenue'),
-                DB::raw('SUM(students.student_count) as student_count'),
-                DB::raw("'regular' as course_type")
-            )
-            ->groupBy('cours.matiere', 'students.niveau_scolaire')
-            ->get();
-
-        // Get revenue by communication course and level with filters
-        $commRevenueQuery = StudentCourse::join('students', 'student_courses.student_id', '=', 'students.id')
-            ->join('communication_courses', 'student_courses.communication_course_id', '=', 'communication_courses.id')
-            ->whereNotNull('student_courses.communication_course_id')
-            ->where('students.status', 'active');
+        // Get enrollments
+        $enrollments = $activeEnrollments->get();
+        
+        // Process regular courses
+        $regularRevenueData = [];
+        $regularEnrollments = $enrollments->filter(function($enrollment) {
+            return $enrollment->course_id !== null;
+        });
+        
+        foreach ($regularEnrollments as $enrollment) {
+            $subject = $enrollment->course->matiere;
+            $level = $enrollment->student->niveau_scolaire;
             
-        // Apply level filter if set
-        if ($request->filled('level')) {
-            $commRevenueQuery->where('students.niveau_scolaire', $request->level);
+            // Calculate remaining months revenue
+            $startDate = Carbon::now()->startOfMonth();
+            $endDate = $enrollment->payment_expiry ? $enrollment->payment_expiry->startOfMonth() : null;
+            $monthlyRevenue = 0;
+            
+            if ($endDate && $startDate->lte($endDate)) {
+                $currentDate = $startDate->copy();
+                while ($currentDate->lte($endDate)) {
+                    $monthlyRevenue += $enrollment->getRevenueForMonth($currentDate);
+                    $currentDate->addMonth();
+                }
+            } else if ($enrollment->payment_expiry && $enrollment->payment_expiry->gte(Carbon::now())) {
+                $monthlyRevenue += $enrollment->getRevenueForMonth(Carbon::now());
+            }
+            
+            $key = $subject . '-' . $level;
+            
+            if (!isset($regularRevenueData[$key])) {
+                $regularRevenueData[$key] = [
+                    'subject' => $subject,
+                    'level' => $level,
+                    'total_revenue' => 0,
+                    'student_count' => 0,
+                    'course_type' => 'regular'
+                ];
+            }
+            
+            $regularRevenueData[$key]['total_revenue'] += $monthlyRevenue;
+            $regularRevenueData[$key]['student_count'] += $enrollment->student->student_count;
         }
         
-        // Apply subject search if set
-        if ($request->filled('search')) {
-            $commRevenueQuery->where('communication_courses.matiere', 'LIKE', '%' . $request->search . '%');
+        // Process communication courses
+        $commRevenueData = [];
+        $commEnrollments = $enrollments->filter(function($enrollment) {
+            return $enrollment->communication_course_id !== null;
+        });
+        
+        foreach ($commEnrollments as $enrollment) {
+            $subject = $enrollment->communicationCourse->matiere;
+            $level = $enrollment->student->niveau_scolaire;
+            
+            // Calculate remaining months revenue
+            $startDate = Carbon::now()->startOfMonth();
+            $endDate = $enrollment->payment_expiry ? $enrollment->payment_expiry->startOfMonth() : null;
+            $monthlyRevenue = 0;
+            
+            if ($endDate && $startDate->lte($endDate)) {
+                $currentDate = $startDate->copy();
+                while ($currentDate->lte($endDate)) {
+                    $monthlyRevenue += $enrollment->getRevenueForMonth($currentDate);
+                    $currentDate->addMonth();
+                }
+            } else if ($enrollment->payment_expiry && $enrollment->payment_expiry->gte(Carbon::now())) {
+                $monthlyRevenue += $enrollment->getRevenueForMonth(Carbon::now());
+            }
+            
+            $key = $subject . '-' . $level;
+            
+            if (!isset($commRevenueData[$key])) {
+                $commRevenueData[$key] = [
+                    'subject' => $subject,
+                    'level' => $level,
+                    'total_revenue' => 0,
+                    'student_count' => 0,
+                    'course_type' => 'communication'
+                ];
+            }
+            
+            $commRevenueData[$key]['total_revenue'] += $monthlyRevenue;
+            $commRevenueData[$key]['student_count'] += $enrollment->student->student_count;
         }
         
-        // Select and group query - ensure correct student count
-        $commRevenue = $commRevenueQuery->select(
-                'communication_courses.matiere as subject',
-                'students.niveau_scolaire as level',
-                DB::raw('SUM(student_courses.paid_amount) as total_revenue'),
-                DB::raw('SUM(students.student_count) as student_count'),
-                DB::raw("'communication' as course_type")
-            )
-            ->groupBy('communication_courses.matiere', 'students.niveau_scolaire')
-            ->get();
+        // Convert to collections of objects (not arrays)
+        $regularItems = collect();
+        foreach (array_values($regularRevenueData) as $item) {
+            $regularItems->push((object)$item);
+        }
+        
+        $commItems = collect();
+        foreach (array_values($commRevenueData) as $item) {
+            $commItems->push((object)$item);
+        }
 
         // Combine the results
         $revenueBySubject = collect();
@@ -195,18 +282,23 @@ class EnrollmentController extends Controller
         // Apply course type filter if set
         if ($request->filled('course_type')) {
             if ($request->course_type === 'regular') {
-                $revenueBySubject = $regularRevenue;
+                $revenueBySubject = $regularItems;
             } elseif ($request->course_type === 'communication') {
-                $revenueBySubject = $commRevenue;
+                $revenueBySubject = $commItems;
             }
         } else {
-            $revenueBySubject = $regularRevenue->concat($commRevenue);
+            $revenueBySubject = $regularItems->concat($commItems);
         }
         
         // Track filtered count for display
         $filteredCount = $revenueBySubject->count();
 
-        // Calculate totals by level - ensure we're counting actual student count
+        // Calculate totals
+        $totalRevenue = $revenueBySubject->sum('total_revenue');
+        $totalStudents = $revenueBySubject->sum('student_count');
+        $grandTotal = $totalRevenue;
+        
+        // Calculate totals by level
         $totalsByLevel = [];
         foreach ($schoolLevels as $levelKey => $levelName) {
             $levelItems = $revenueBySubject->where('level', $levelKey);
@@ -215,10 +307,6 @@ class EnrollmentController extends Controller
                 'students' => $levelItems->sum('student_count')
             ];
         }
-
-        // Calculate grand total
-        $grandTotal = $revenueBySubject->sum('total_revenue');
-        $totalStudents = Student::sum('paid_amount');
   
         // Get actual students list for counting
         $studentsQuery = Student::where('status', 'active');
@@ -231,9 +319,10 @@ class EnrollmentController extends Controller
         return view('enrollments.revenue', compact(
             'revenueBySubject', 
             'schoolLevels', 
-            'totalsByLevel', 
-            'grandTotal', 
+            'totalRevenue', 
             'totalStudents',
+            'totalsByLevel',
+            'grandTotal',
             'filteredCount',
             'actualStudentCount'
         ));
@@ -244,59 +333,142 @@ class EnrollmentController extends Controller
      */
     public function summary($niveau_scolaire)
     {
-        // Regular courses enrollments
-        $regularEnrollments = DB::table('student_courses')
-            ->join('students', 'student_courses.student_id', '=', 'students.id')
-            ->join('cours', 'student_courses.course_id', '=', 'cours.id')
-            ->select(
-                'cours.matiere',
-                'cours.niveau_scolaire',
-                'cours.prix',
-                DB::raw('SUM(students.student_count) as total_students'),
-                DB::raw('SUM(student_courses.paid_amount) as revenue'),
-                DB::raw("'regular' as course_type")
-            )
-            ->where('students.niveau_scolaire', $niveau_scolaire)
-            ->whereNotNull('student_courses.course_id')
-            ->where('students.status', 'active')
-            ->groupBy('cours.id', 'cours.matiere', 'cours.niveau_scolaire', 'cours.prix')
+        // Get active enrollments for this level
+        $activeEnrollments = StudentCourse::with(['student', 'course', 'communicationCourse'])
+            ->whereHas('student', function($query) use ($niveau_scolaire) {
+                $query->where('niveau_scolaire', $niveau_scolaire)
+                      ->where('status', 'active');
+            })
+            ->where('status', 'active')
+            ->where(function($query) {
+                $query->where('enrollment_date', '<=', Carbon::now())
+                      ->orWhereNull('enrollment_date');
+            })
             ->get();
             
-        // Communication courses enrollments
-        $commEnrollments = DB::table('student_courses')
-            ->join('students', 'student_courses.student_id', '=', 'students.id')
-            ->join('communication_courses', 'student_courses.communication_course_id', '=', 'communication_courses.id')
-            ->select(
-                'communication_courses.matiere',
-                'communication_courses.niveau_scolaire',
-                'communication_courses.prix',
-                DB::raw('SUM(students.student_count) as total_students'),
-                DB::raw('SUM(student_courses.paid_amount) as revenue'),
-                DB::raw("'communication' as course_type")
-            )
-            ->where('students.niveau_scolaire', $niveau_scolaire)
-            ->whereNotNull('student_courses.communication_course_id')
-            ->where('students.status', 'active')
-            ->groupBy('communication_courses.id', 'communication_courses.matiere', 'communication_courses.niveau_scolaire', 'communication_courses.prix')
-            ->get();
+        // Process regular course enrollments
+        $regularEnrollments = $activeEnrollments->filter(function($enrollment) {
+            return $enrollment->course_id !== null;
+        });
+        
+        $summaryRegularData = [];
+        foreach ($regularEnrollments as $enrollment) {
+            $courseId = $enrollment->course_id;
             
-        // Merge both collections
-        $enrollments = $regularEnrollments->merge($commEnrollments);
+            if (!isset($summaryRegularData[$courseId])) {
+                $summaryRegularData[$courseId] = [
+                    'matiere' => $enrollment->course->matiere,
+                    'niveau_scolaire' => $enrollment->course->niveau_scolaire,
+                    'prix' => $enrollment->course->prix,
+                    'total_students' => 0,
+                    'revenue' => 0,
+                    'course_type' => 'regular'
+                ];
+            }
+            
+            // Calculate revenue using monthly amount
+            $startDate = Carbon::now()->startOfMonth();
+            $endDate = $enrollment->payment_expiry ? $enrollment->payment_expiry->startOfMonth() : null;
+            $monthlyRevenue = 0;
+            
+            if ($endDate && $startDate->lte($endDate)) {
+                $currentDate = $startDate->copy();
+                while ($currentDate->lte($endDate)) {
+                    $monthlyRevenue += $enrollment->getRevenueForMonth($currentDate);
+                    $currentDate->addMonth();
+                }
+            } else if ($enrollment->payment_expiry && $enrollment->payment_expiry->gte(Carbon::now())) {
+                $monthlyRevenue += $enrollment->getRevenueForMonth(Carbon::now());
+            }
+            
+            $summaryRegularData[$courseId]['revenue'] += $monthlyRevenue;
+            $summaryRegularData[$courseId]['total_students'] += $enrollment->student->student_count;
+        }
         
-        // Calculate total for this level
-        $totalPrice = $enrollments->sum('revenue');
+        // Process communication course enrollments
+        $commEnrollments = $activeEnrollments->filter(function($enrollment) {
+            return $enrollment->communication_course_id !== null;
+        });
         
-        // Format the level name for display
-        $levelNames = [
-            'premiere_school' => 'Première École',
-            '2_first_middle_niveau' => '2ème Niveau Collège',
-            '3ac' => '3éme Année Collège',
-            'high_school' => 'Lycée'
-        ];
+        $summaryCommData = [];
+        foreach ($commEnrollments as $enrollment) {
+            $courseId = $enrollment->communication_course_id;
+            
+            if (!isset($summaryCommData[$courseId])) {
+                $summaryCommData[$courseId] = [
+                    'matiere' => $enrollment->communicationCourse->matiere,
+                    'niveau_scolaire' => $enrollment->communicationCourse->niveau_scolaire,
+                    'prix' => $enrollment->communicationCourse->prix,
+                    'total_students' => 0,
+                    'revenue' => 0,
+                    'course_type' => 'communication'
+                ];
+            }
+            
+            // Calculate revenue using monthly amount
+            $startDate = Carbon::now()->startOfMonth();
+            $endDate = $enrollment->payment_expiry ? $enrollment->payment_expiry->startOfMonth() : null;
+            $monthlyRevenue = 0;
+            
+            if ($endDate && $startDate->lte($endDate)) {
+                $currentDate = $startDate->copy();
+                while ($currentDate->lte($endDate)) {
+                    $monthlyRevenue += $enrollment->getRevenueForMonth($currentDate);
+                    $currentDate->addMonth();
+                }
+            } else if ($enrollment->payment_expiry && $enrollment->payment_expiry->gte(Carbon::now())) {
+                $monthlyRevenue += $enrollment->getRevenueForMonth(Carbon::now());
+            }
+            
+            $summaryCommData[$courseId]['revenue'] += $monthlyRevenue;
+            $summaryCommData[$courseId]['total_students'] += $enrollment->student->student_count;
+        }
         
-        $levelName = $levelNames[$niveau_scolaire] ?? $niveau_scolaire;
+        // Convert arrays to objects for the view
+        $summaryRegular = collect();
+        foreach (array_values($summaryRegularData) as $item) {
+            $summaryRegular->push((object)$item);
+        }
         
-        return view('enrollments.summary', compact('enrollments', 'totalPrice', 'niveau_scolaire', 'levelName'));
+        $summaryComm = collect();
+        foreach (array_values($summaryCommData) as $item) {
+            $summaryComm->push((object)$item);
+        }
+        
+        // Combine results
+        $enrollments = $summaryRegular->concat($summaryComm);
+        
+        // Get translations for the level
+        $levelName = '';
+        switch ($niveau_scolaire) {
+            case 'premiere_school':
+                $levelName = __('Première School');
+                break;
+            case '1ac':
+                $levelName = __('1st Middle School');
+                break;
+            case '2ac':
+                $levelName = __('2nd Middle School');
+                break;
+            case '3ac':
+                $levelName = __('3AC');
+                break;
+            case 'high_school':
+                $levelName = __('High School');
+                break;
+        }
+        
+        // Calculate totals
+        $totalStudents = $enrollments->sum('total_students');
+        $totalRevenue = $enrollments->sum('revenue');
+        
+        return view('enrollments.summary', compact(
+            'enrollments',
+            'niveau_scolaire',
+            'levelName',
+            'totalStudents',
+            'totalRevenue'
+        ));
     }
     
     /**
@@ -306,7 +478,8 @@ class EnrollmentController extends Controller
     {
         $schoolLevels = [
             'premiere_school' => 'Première École',
-            '2_first_middle_niveau' => '2ème Niveau Collège',
+            '1ac' => '1ère Année Collège',
+            '2ac' => '2ème Année Collège',
             '3ac' => '3éme Année Collège',
             'high_school' => 'Lycée'
         ];
@@ -317,41 +490,113 @@ class EnrollmentController extends Controller
         
         $levelName = $schoolLevels[$level];
         
-        // Get regular enrollments for this level
-        $regularEnrollments = StudentCourse::join('students', 'student_courses.student_id', '=', 'students.id')
-            ->join('cours', 'student_courses.course_id', '=', 'cours.id')
-            ->where('students.niveau_scolaire', $level)
-            ->where('student_courses.course_id', '!=', null)
-            ->where('students.status', 'active')
-            ->select(
-                'cours.matiere as course_name',
-                'cours.prix as price',
-                DB::raw('SUM(students.student_count) as total_students'),
-                DB::raw('SUM(student_courses.paid_amount) as total_revenue'),
-                DB::raw("'regular' as course_type")
-            )
-            ->groupBy('cours.id', 'cours.matiere', 'cours.prix')
+        // Get active enrollments for this level
+        $activeEnrollments = StudentCourse::with(['student', 'course', 'communicationCourse'])
+            ->whereHas('student', function($query) use ($level) {
+                $query->where('niveau_scolaire', $level)
+                      ->where('status', 'active');
+            })
+            ->where('status', 'active')
+            ->where(function($query) {
+                $query->where('enrollment_date', '<=', Carbon::now())
+                      ->orWhereNull('enrollment_date');
+            })
             ->get();
             
-        // Get communication enrollments for this level
-        $commEnrollments = StudentCourse::join('students', 'student_courses.student_id', '=', 'students.id')
-            ->join('communication_courses', 'student_courses.communication_course_id', '=', 'communication_courses.id')
-            ->where('students.niveau_scolaire', $level)
-            ->where('student_courses.communication_course_id', '!=', null)
-            ->where('students.status', 'active')
-            ->select(
-                'communication_courses.matiere as course_name',
-                'communication_courses.prix as price',
-                DB::raw('SUM(students.student_count) as total_students'),
-                DB::raw('SUM(student_courses.paid_amount) as total_revenue'),
-                DB::raw("'communication' as course_type")
-            )
-            ->groupBy('communication_courses.id', 'communication_courses.matiere', 'communication_courses.prix')
-            ->get();
-            
-        $enrollments = $regularEnrollments->concat($commEnrollments);
+        // Process regular course enrollments
+        $regularEnrollments = $activeEnrollments->filter(function($enrollment) {
+            return $enrollment->course_id !== null;
+        });
         
-        $totalRevenue = $enrollments->sum('total_revenue');
+        $summaryRegularData = [];
+        foreach ($regularEnrollments as $enrollment) {
+            $courseId = $enrollment->course_id;
+            
+            if (!isset($summaryRegularData[$courseId])) {
+                $summaryRegularData[$courseId] = [
+                    'matiere' => $enrollment->course->matiere,
+                    'niveau_scolaire' => $enrollment->course->niveau_scolaire,
+                    'prix' => $enrollment->course->prix,
+                    'total_students' => 0,
+                    'revenue' => 0,
+                    'course_type' => 'regular'
+                ];
+            }
+            
+            // Calculate revenue using monthly amount
+            $startDate = Carbon::now()->startOfMonth();
+            $endDate = $enrollment->payment_expiry ? $enrollment->payment_expiry->startOfMonth() : null;
+            $monthlyRevenue = 0;
+            
+            if ($endDate && $startDate->lte($endDate)) {
+                $currentDate = $startDate->copy();
+                while ($currentDate->lte($endDate)) {
+                    $monthlyRevenue += $enrollment->getRevenueForMonth($currentDate);
+                    $currentDate->addMonth();
+                }
+            } else if ($enrollment->payment_expiry && $enrollment->payment_expiry->gte(Carbon::now())) {
+                $monthlyRevenue += $enrollment->getRevenueForMonth(Carbon::now());
+            }
+            
+            $summaryRegularData[$courseId]['revenue'] += $monthlyRevenue;
+            $summaryRegularData[$courseId]['total_students'] += $enrollment->student->student_count;
+        }
+        
+        // Process communication course enrollments
+        $commEnrollments = $activeEnrollments->filter(function($enrollment) {
+            return $enrollment->communication_course_id !== null;
+        });
+        
+        $summaryCommData = [];
+        foreach ($commEnrollments as $enrollment) {
+            $courseId = $enrollment->communication_course_id;
+            
+            if (!isset($summaryCommData[$courseId])) {
+                $summaryCommData[$courseId] = [
+                    'matiere' => $enrollment->communicationCourse->matiere,
+                    'niveau_scolaire' => $enrollment->communicationCourse->niveau_scolaire,
+                    'prix' => $enrollment->communicationCourse->prix,
+                    'total_students' => 0,
+                    'revenue' => 0,
+                    'course_type' => 'communication'
+                ];
+            }
+            
+            // Calculate revenue using monthly amount
+            $startDate = Carbon::now()->startOfMonth();
+            $endDate = $enrollment->payment_expiry ? $enrollment->payment_expiry->startOfMonth() : null;
+            $monthlyRevenue = 0;
+            
+            if ($endDate && $startDate->lte($endDate)) {
+                $currentDate = $startDate->copy();
+                while ($currentDate->lte($endDate)) {
+                    $monthlyRevenue += $enrollment->getRevenueForMonth($currentDate);
+                    $currentDate->addMonth();
+                }
+            } else if ($enrollment->payment_expiry && $enrollment->payment_expiry->gte(Carbon::now())) {
+                $monthlyRevenue += $enrollment->getRevenueForMonth(Carbon::now());
+            }
+            
+            $summaryCommData[$courseId]['revenue'] += $monthlyRevenue;
+            $summaryCommData[$courseId]['total_students'] += $enrollment->student->student_count;
+        }
+        
+        // Convert arrays to objects for the view
+        $summaryRegular = collect();
+        foreach (array_values($summaryRegularData) as $item) {
+            $summaryRegular->push((object)$item);
+        }
+        
+        $summaryComm = collect();
+        foreach (array_values($summaryCommData) as $item) {
+            $summaryComm->push((object)$item);
+        }
+        
+        // Combine results
+        $enrollments = $summaryRegular->concat($summaryComm);
+        
+        // Calculate total revenue
+        $totalRevenue = $enrollments->sum('revenue');
         
         return view('enrollments.summary', compact('level', 'levelName', 'enrollments', 'totalRevenue'));
     }
@@ -366,5 +611,204 @@ class EnrollmentController extends Controller
             ->get();
 
         return view('enrollments.index', compact('enrollments'));
+    }
+
+    /**
+     * Update a student course enrollment
+     */
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'enrollment_date' => 'required|date',
+            'payment_expiry' => 'required|date',
+            'paid_amount' => 'required|numeric|min:0',
+            'months' => 'required|integer|min:1',
+            'monthly_revenue_amount' => 'nullable|numeric|min:0',
+            'status' => 'required|in:active,inactive',
+        ]);
+        
+        try {
+            $enrollment = StudentCourse::findOrFail($id);
+            
+            // Log dates before update
+            \Log::info("Before updating enrollment {$id}", [
+                'enrollment_date' => $request->enrollment_date,
+                'payment_expiry' => $request->payment_expiry
+            ]);
+            
+            // Format dates for direct insertion to avoid mutator issues
+            $enrollmentDate = Carbon::parse($request->enrollment_date)->format('Y-m-d');
+            $paymentExpiry = Carbon::parse($request->payment_expiry)->format('Y-m-d');
+            
+            // Update directly in DB to bypass any mutator issues
+            DB::table('student_courses')
+                ->where('id', $id)
+                ->update([
+                    'enrollment_date' => $enrollmentDate,
+                    'payment_expiry' => $paymentExpiry,
+                    'paid_amount' => $validated['paid_amount'],
+                    'months' => $validated['months'],
+                    'monthly_revenue_amount' => $validated['monthly_revenue_amount'] ?: null,
+                    'status' => $validated['status'],
+                    'updated_at' => now()
+                ]);
+            
+            // Reload the enrollment to get fresh data
+            $enrollment = StudentCourse::findOrFail($id);
+            
+            // Log after update
+            \Log::info("After updating enrollment {$id}", [
+                'enrollment_date' => $enrollment->enrollment_date,
+                'payment_expiry' => $enrollment->payment_expiry
+            ]);
+            
+            return redirect()->route('student-courses.index')
+                ->with('success', 'Enrollment updated successfully!');
+        } catch (\Exception $e) {
+            \Log::error("Error updating enrollment {$id}: " . $e->getMessage());
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['date_error' => 'Error updating enrollment: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Delete a student course enrollment
+     */
+    public function destroy($id)
+    {
+        $enrollment = StudentCourse::findOrFail($id);
+        $enrollment->delete();
+        
+        return redirect()->route('student-courses.index')
+            ->with('success', 'Enrollment deleted successfully!');
+    }
+
+    /**
+     * Display enrollments that are expiring soon
+     */
+    public function nearExpiry()
+    {
+        $today = Carbon::today();
+        $twoWeeksFromNow = Carbon::today()->addDays(14);
+        
+        $nearExpiryEnrollments = StudentCourse::with(['student', 'course', 'communicationCourse'])
+            ->where('status', 'active')
+            ->whereBetween('payment_expiry', [$today, $twoWeeksFromNow])
+            ->orderBy('payment_expiry')
+            ->paginate(15);
+        
+        return view('student-courses.near-expiry', compact('nearExpiryEnrollments'));
+    }
+
+    /**
+     * Display index of student courses 
+     */
+    public function studentCoursesIndex(Request $request)
+    {
+        $query = StudentCourse::with(['student', 'course', 'communicationCourse']);
+        
+        // Apply search if set
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('student', function($q) use ($search) {
+                $q->where('name', 'LIKE', '%' . $search . '%')
+                  ->orWhere('email', 'LIKE', '%' . $search . '%')
+                  ->orWhere('phone', 'LIKE', '%' . $search . '%');
+            });
+        }
+        
+        // Apply status filter if set
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        // Apply course type filter if set
+        if ($request->filled('course_type')) {
+            if ($request->course_type === 'regular') {
+                $query->whereNotNull('course_id');
+            } elseif ($request->course_type === 'communication') {
+                $query->whereNotNull('communication_course_id');
+            }
+        }
+        
+        // Get paginated results
+        $enrollments = $query->orderBy('payment_expiry', 'asc')
+                             ->paginate(15);
+        
+        return view('student-courses.manage', compact('enrollments'));
+    }
+
+    /**
+     * Display the form for creating a new student course
+     */
+    public function create()
+    {
+        $students = Student::where('status', 'active')->orderBy('name')->get();
+        $regularCourses = Cours::where('type', 'regular')->orderBy('niveau_scolaire')->orderBy('matiere')->get();
+        $communicationCourses = CommunicationCourse::orderBy('niveau_scolaire')->orderBy('matiere')->get();
+        
+        return view('student-courses.create', compact('students', 'regularCourses', 'communicationCourses'));
+    }
+
+    /**
+     * Display the form for editing a student course
+     */
+    public function edit($id)
+    {
+        $enrollment = StudentCourse::with(['student', 'course', 'communicationCourse'])->findOrFail($id);
+        return view('student-courses.edit', compact('enrollment'));
+    }
+
+    /**
+     * Store a new student course enrollment
+     */
+    public function storeStudentCourse(Request $request)
+    {
+        $validated = $request->validate([
+            'student_id' => 'required|exists:students,id',
+            'course_type' => 'required|in:regular,communication',
+            'course_id' => 'required_if:course_type,regular|nullable|exists:cours,id',
+            'communication_course_id' => 'required_if:course_type,communication|nullable|exists:communication_courses,id',
+            'enrollment_date' => 'required|date',
+            'months' => 'required|integer|min:1',
+            'paid_amount' => 'required|numeric|min:0',
+            'monthly_revenue_amount' => 'nullable|numeric|min:0',
+            'status' => 'required|in:active,inactive',
+        ]);
+        
+        try {
+            $enrollment = new StudentCourse();
+            $enrollment->student_id = $validated['student_id'];
+            
+            // Set course information based on type
+            if ($validated['course_type'] === 'regular') {
+                $enrollment->course_id = $validated['course_id'];
+            } else {
+                $enrollment->communication_course_id = $validated['communication_course_id'];
+            }
+            
+            // Parse and set dates
+            $enrollmentDate = Carbon::createFromFormat('Y-m-d', $validated['enrollment_date']);
+            $enrollment->enrollment_date = $enrollmentDate;
+            
+            // Calculate payment expiry date based on enrollment date and months
+            $enrollment->payment_expiry = $enrollmentDate->copy()->addMonths($validated['months']);
+            
+            // Set other fields
+            $enrollment->months = $validated['months'];
+            $enrollment->paid_amount = $validated['paid_amount'];
+            $enrollment->monthly_revenue_amount = $validated['monthly_revenue_amount'] ?: null;
+            $enrollment->status = $validated['status'];
+            
+            $enrollment->save();
+            
+            return redirect()->route('student-courses.index')
+                ->with('success', 'Enrollment created successfully!');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Error creating enrollment: ' . $e->getMessage()]);
+        }
     }
 } 

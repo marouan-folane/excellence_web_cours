@@ -13,6 +13,7 @@
             @endif
         </h1>
         
+        
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <!-- Total Students -->
@@ -101,6 +102,7 @@
                             @else
                                 Total Revenue
                             @endif
+                            <span class="ml-1 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full" title="Future enrollments are not counted until their start date">Active Only</span>
                         </div>
                         <div class="text-xl font-semibold text-gray-800">{{ number_format($totalRevenue, 2) }} DH</div>
                     </div>
@@ -123,7 +125,7 @@
             </div>
             <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <!-- Students Link -->
-                <a href="{{ route('students.near-expiry') }}" class="flex items-center p-4 bg-blue-50 rounded-lg border border-blue-100 hover:bg-blue-100 transition">
+                <a href="{{ route('student-courses.near-expiry') }}" class="flex items-center p-4 bg-blue-50 rounded-lg border border-blue-100 hover:bg-blue-100 transition">
                     <span class="p-2 rounded-full bg-blue-100 text-blue-600 mr-4">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -140,8 +142,8 @@
                     </span>
                 </a>
 
-                <!-- Create Enrollment Link -->
-                <a href="{{ route('enrollments.create') }}" class="flex items-center p-4 bg-green-50 rounded-lg border border-green-100 hover:bg-green-100 transition">
+                <!-- Create Enrollment Link - Updated to go to students.create -->
+                <a href="{{ route('students.create', ['redirect' => 'dashboard']) }}" class="flex items-center p-4 bg-green-50 rounded-lg border border-green-100 hover:bg-green-100 transition">
                     <span class="p-2 rounded-full bg-green-100 text-green-600 mr-4">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -192,7 +194,7 @@
                                 Soon Expiring Payments
                             @endif
                         </h2>
-                        <a href="{{ route('students.near-expiry') }}" class="text-sm text-blue-600 hover:text-blue-800">
+                        <a href="{{ route('student-courses.near-expiry') }}" class="text-sm text-blue-600 hover:text-blue-800">
                             @if(session('locale') == 'fr')
                                 Voir Tout
                             @elseif(session('locale') == 'ar')
@@ -375,7 +377,15 @@
                                     @else
                                         Primary School
                                     @endif
-                                @elseif($level->niveau_scolaire == '2_first_middle_niveau')
+                                @elseif($level->niveau_scolaire == '1ac')
+                                    @if(session('locale') == 'fr')
+                                        1ère Collège
+                                    @elseif(session('locale') == 'ar')
+                                        السنة الأولى إعدادي
+                                    @else
+                                        1st Middle School
+                                    @endif
+                                @elseif($level->niveau_scolaire == '2ac')
                                     @if(session('locale') == 'fr')
                                         2ème Collège
                                     @elseif(session('locale') == 'ar')
@@ -473,7 +483,7 @@
                     </h2>
                     
                     <div class="space-y-2">
-                        <a href="{{ route('enrollments.create') }}" class="w-full block text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                        <a href="{{ route('students.create') }}" class="w-full block text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
                             @if(session('locale') == 'fr')
                                 Nouvelle Inscription
                             @elseif(session('locale') == 'ar')
@@ -500,7 +510,7 @@
                                 View Students
                             @endif
                         </a>
-                        <a href="{{ route('students.near-expiry') }}" class="w-full block text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700">
+                        <a href="{{ route('student-courses.near-expiry') }}" class="w-full block text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700">
                             @if(session('locale') == 'fr')
                                 Paiements Expirant Bientôt
                             @elseif(session('locale') == 'ar')
@@ -554,7 +564,7 @@
                 Revenue by Subject
             @endif
         </a>
-        <a href="{{ route('students.near-expiry') }}" class="w-full block text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700">
+        <a href="{{ route('student-courses.near-expiry') }}" class="w-full block text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700">
             @if(session('locale') == 'fr')
                 Paiements Expirant Bientôt
             @elseif(session('locale') == 'ar')

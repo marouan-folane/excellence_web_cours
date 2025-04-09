@@ -21,7 +21,21 @@
         @foreach($enrollments as $niveau => $students)
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="my-0 font-weight-normal">{{ ucfirst(str_replace('_', ' ', $niveau)) }}</h5>
+                <h5 class="my-0 font-weight-normal">
+                    @if($niveau == 'premiere_school')
+                        Première École
+                    @elseif($niveau == '1ac')
+                        1ère Année Collège
+                    @elseif($niveau == '2ac')
+                        2ème Année Collège
+                    @elseif($niveau == '3ac')
+                        3ème Année Collège
+                    @elseif($niveau == 'high_school')
+                        Lycée
+                    @else
+                        {{ ucfirst(str_replace('_', ' ', $niveau)) }}
+                    @endif
+                </h5>
                 <span class="badge bg-success fs-5">Total: {{ number_format($totalPriceByLevel[$niveau], 2) }} DH</span>
             </div>
             <div class="card-body">
@@ -67,7 +81,21 @@
                         <tbody>
                             @foreach($totalPriceByLevel as $niveau => $totalPrice)
                             <tr>
-                                <td>{{ ucfirst(str_replace('_', ' ', $niveau)) }}</td>
+                                <td>
+                                    @if($niveau == 'premiere_school')
+                                        Première École
+                                    @elseif($niveau == '1ac')
+                                        1ère Année Collège
+                                    @elseif($niveau == '2ac')
+                                        2ème Année Collège
+                                    @elseif($niveau == '3ac')
+                                        3ème Année Collège
+                                    @elseif($niveau == 'high_school')
+                                        Lycée
+                                    @else
+                                        {{ ucfirst(str_replace('_', ' ', $niveau)) }}
+                                    @endif
+                                </td>
                                 <td>{{ number_format($totalPrice, 2) }}</td>
                             </tr>
                             @endforeach

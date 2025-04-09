@@ -24,6 +24,37 @@
         </a>
     </div>
     
+    <!-- Filters and Export -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Subject Revenue Report {{ $selectedLevel != 'all' ? '- ' . $levels[$selectedLevel] : '' }}</h2>
+            
+            <div class="d-flex gap-3">
+                <form action="{{ route('reports.subjects') }}" method="GET" class="d-flex gap-2">
+                    <select name="level" class="form-select">
+                        @foreach($levels as $key => $label)
+                            <option value="{{ $key }}" {{ $selectedLevel == $key ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                </form>
+                
+                <form action="{{ route('export.subject.revenue') }}" method="GET" class="d-inline">
+                    <input type="hidden" name="level" value="{{ $selectedLevel }}">
+                    
+                    <div class="d-flex align-items-center gap-2">
+                        <select name="pdf_language" class="form-select form-select-sm">
+                            <option value="en">English</option>
+                            <option value="fr">French</option>
+                            <option value="ar">Arabic</option>
+                        </select>
+                        <button type="submit" class="btn btn-success">Export CSV</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
     <!-- Revenue By Subject Chart -->
     <div class="bg-white p-6 rounded-lg shadow-md mb-8">
         <h2 class="text-xl font-semibold text-gray-800 mb-4">
@@ -33,6 +64,9 @@
                 رسم بياني للإيرادات حسب المادة
             @else
                 Subject Revenue Chart
+            @endif
+            @if($selectedLevel !== 'all')
+                - {{ $levels[$selectedLevel] ?? $selectedLevel }}
             @endif
         </h2>
         
@@ -51,6 +85,9 @@
             @else
                 Subject Revenue Details
             @endif
+            @if($selectedLevel !== 'all')
+                - {{ $levels[$selectedLevel] ?? $selectedLevel }}
+            @endif
         </h2>
         
         <div class="overflow-x-auto">
@@ -68,6 +105,15 @@
                         </th>
                         <th class="py-2 px-4 text-right text-sm font-semibold text-gray-600">
                             @if(session('locale') == 'fr')
+                                Nombre d'étudiants
+                            @elseif(session('locale') == 'ar')
+                                عدد الطلاب
+                            @else
+                                Students
+                            @endif
+                        </th>
+                        <th class="py-2 px-4 text-right text-sm font-semibold text-gray-600">
+                            @if(session('locale') == 'fr')
                                 Revenu
                             @elseif(session('locale') == 'ar')
                                 الإيرادات
@@ -80,20 +126,39 @@
                 <tbody class="divide-y divide-gray-200">
                     @php
                         $totalRevenue = 0;
+                        $totalStudents = 0;
                     @endphp
                     
                     @foreach($revenueBySubject as $subject)
                         @php
-                            $totalRevenue += $subject['revenue'];
+                            $totalRevenue += $subject['total_revenue'];
+                            $totalStudents += $subject['total_students'];
                         @endphp
                         <tr>
                             <td class="py-3 px-4 text-sm text-gray-800">{{ $subject['subject'] }}</td>
-                            <td class="py-3 px-4 text-right text-sm text-gray-800">{{ number_format($subject['revenue'], 2) }} DH</td>
+                            <td class="py-3 px-4 text-right text-sm text-gray-800">{{ $subject['total_students'] }}</td>
+                            <td class="py-3 px-4 text-right text-sm text-gray-800">{{ number_format($subject['total_revenue'], 2) }} DH</td>
                         </tr>
+                        
+                        @if($selectedLevel === 'all' && isset($subject['level_breakdown']))
+                            @foreach($subject['level_breakdown'] as $levelKey => $levelData)
+                                <tr class="bg-gray-50">
+                                    <td class="py-2 px-4 text-sm text-gray-600 pl-8">
+                                        &rarr; {{ $levels[$levelKey] ?? $levelKey }}
+                                    </td>
+                                    <td class="py-2 px-4 text-right text-sm text-gray-600">
+                                        {{ $levelData['students'] }}
+                                    </td>
+                                    <td class="py-2 px-4 text-right text-sm text-gray-600">
+                                        {{ number_format($levelData['revenue'], 2) }} DH
+                                    </td>
+                                </tr>
+                            @endforeach
+                        @endif
                     @endforeach
                     
                     <!-- Total Row -->
-                    <tr class="bg-gray-50 font-semibold">
+                    <tr class="bg-gray-100 font-semibold">
                         <td class="py-3 px-4 text-sm text-gray-800">
                             @if(session('locale') == 'fr')
                                 TOTAL
@@ -103,7 +168,12 @@
                                 TOTAL
                             @endif
                         </td>
-                        <td class="py-3 px-4 text-right text-sm text-gray-800">{{ number_format($totalRevenue, 2) }} DH</td>
+                        <td class="py-3 px-4 text-right text-sm text-gray-800">
+                            {{ $totalStudents }}
+                        </td>
+                        <td class="py-3 px-4 text-right text-sm text-gray-800">
+                            {{ number_format($totalRevenue, 2) }} DH
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -122,7 +192,7 @@
                 labels: {!! json_encode(array_column($revenueBySubject, 'subject')) !!},
                 datasets: [{
                     label: 'Revenue (DH)',
-                    data: {!! json_encode(array_column($revenueBySubject, 'revenue')) !!},
+                    data: {!! json_encode(array_column($revenueBySubject, 'total_revenue')) !!},
                     backgroundColor: 'rgba(59, 130, 246, 0.7)',
                     borderColor: 'rgba(59, 130, 246, 1)',
                     borderWidth: 1

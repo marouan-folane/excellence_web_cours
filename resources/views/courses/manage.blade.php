@@ -3,336 +3,282 @@
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">Course Management</h1>
-        <a href="{{ route('dashboard') }}" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-            </svg>
-            Back to Dashboard
-        </a>
+        <h1 class="text-3xl font-bold">Courses</h1>
+        {{-- <div class="flex space-x-4">
+            <a href="{{ route('courses.create') }}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Add Course
+            </a>
+            <a href="/courses/create" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Direct Link
+            </a>
+        </div> --}}
+    </div> 
+
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    {{-- <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th> --}}
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                @foreach($regularCourses as $course)
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $course->matiere }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ ucfirst($course->niveau_scolaire) }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ number_format($course->prix, 2) }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Regular</td>
+                    {{-- <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <a href="{{ route('courses.enrollments', $course->id) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                            <i class="fas fa-users"></i>
+                        </a>
+                        <a href="{{ route('courses.edit', $course->id) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                            modifier 
+                        </a>
+                        <a href="{{ route('courses.delete', $course->id) }}" class="text-red-600 hover:text-red-900" onclick="return confirm('Are you sure you want to delete this course?')">
+                        supprimer
+                        </a>
+                    </td> --}}
+                </tr>
+                @endforeach
+                
+                @foreach($communicationCourses as $course)
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $course->matiere }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ ucfirst($course->niveau_scolaire) }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ number_format($course->prix, 2) }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Communication</td>
+                    {{-- <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <a href="{{ route('communication-courses.enrollments', $course->id) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                            <i class="fas fa-users"></i>
+                        </a>
+                        <a href="{{ route('communication-courses.edit', $course->id) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{{ route('communication-courses.delete', $course->id) }}" class="text-red-600 hover:text-red-900" onclick="return confirm('Are you sure you want to delete this course?')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td> --}}
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
     </div>
-    
-    <!-- Nav tabs -->
-    <div class="border-b border-gray-200 mb-6">
-        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-            <button class="tab-button active border-b-2 border-blue-500 py-4 px-1 text-sm font-medium text-blue-600" data-tab="regular">
-                <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                </svg>
-                Regular Courses
-            </button>
-            <button class="tab-button border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="communication">
-                <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-                </svg>
-                Communication Courses
-            </button>
-            <button class="tab-button border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="stats">
-                <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-                Enrollment Statistics
-            </button>
-        </nav>
-    </div>
-    
-    <!-- Tab content -->
-    <div class="tab-content">
-        <!-- Regular Courses Tab -->
-        <div class="tab-pane active" id="regular">
-            <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                    <h2 class="text-lg font-semibold text-gray-800">Regular Courses</h2>
-                    <button class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" data-bs-toggle="modal" data-bs-target="#addRegularCourseModal">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        Add Course
-                    </button>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">School Level</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix (DH)</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($regularCourses as $course)
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $course->id }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $course->matiere }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $course->niveau_scolaire }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($course->prix, 2) }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                    <button class="text-blue-600 hover:text-blue-900 mr-3">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                        </svg>
-                                    </button>
-                                    <button class="text-red-600 hover:text-red-900">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
-                                    </button>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+</div>
+
+<!-- Add Course Modal -->
+{{-- <div class="modal fade" id="addCourseModal" tabindex="-1" role="dialog" aria-labelledby="addCourseModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCourseModalLabel">{{ __('Add New Course') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-        </div>
-        
-        <!-- Communication Courses Tab -->
-        <div class="tab-pane hidden" id="communication">
-            <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                    <h2 class="text-lg font-semibold text-gray-800">Communication Courses</h2>
-                    <button class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors" data-bs-toggle="modal" data-bs-target="#addCommunicationCourseModal">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        Add Course
-                    </button>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">School Level</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix (DH)</th>
-                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($communicationCourses as $course)
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $course->id }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $course->matiere }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $course->niveau_scolaire }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($course->prix, 2) }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                    <button class="text-blue-600 hover:text-blue-900 mr-3">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                        </svg>
-                                    </button>
-                                    <button class="text-red-600 hover:text-red-900">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
-                                    </button>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+            <div class="modal-body">
+                <form id="addCourseForm" method="POST">
+                    @csrf
+                    <div class="form-group mb-3">
+                        <label for="matiere" class="form-label">{{ __('Subject') }}</label>
+                        <select class="form-select" id="matiere" name="matiere" required>
+                            <option value="Mathématiques">{{ __('Mathématiques') }}</option>
+                            <option value="Physique">{{ __('Physique') }}</option>
+                            <option value="SVT">{{ __('SVT') }}</option>
+                            <option value="Français">{{ __('Français') }}</option>
+                            <option value="Anglais">{{ __('Anglais') }}</option>
+                           
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="niveau_scolaire" class="form-label">{{ __('School Level') }}</label>
+                        <select class="form-select" id="niveau_scolaire" name="niveau_scolaire" required>
+                            <option value="premiere_school">{{ __('Première School') }}</option>
+                            <option value="1ac">{{ __('1AC') }}</option>
+                            <option value="2ac">{{ __('2AC') }}</option>
+                            <option value="3ac">{{ __('3AC') }}</option>
+                            <option value="tronc_commun">{{ __('Tronc Commun') }}</option>
+                            <option value="deuxieme_annee">{{ __('2ème Année') }}</option>
+                            <option value="bac">{{ __('BAC') }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="prix" class="form-label">{{ __('Price') }}</label>
+                        <input type="number" class="form-control" id="prix" name="prix" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="type" class="form-label">{{ __('Type') }}</label>
+                        <select class="form-select" id="type" name="type" required>
+                            <option value="regular">{{ __('Regular') }}</option>
+                            <option value="communication">{{ __('Communication') }}</option>
+                        </select>
+                    </div>
+                </form>
             </div>
-        </div>
-        
-        <!-- Enrollment Statistics Tab -->
-        <div class="tab-pane hidden" id="stats">
-            <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-800">Enrollment Statistics</h2>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">School Level</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrolled Students</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue (DH)</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($courseEnrollments as $enrollment)
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $enrollment->name }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $enrollment->niveau_scolaire }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    @if($enrollment->type == 'regular')
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Regular</span>
-                                    @else
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Communication</span>
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $enrollment->enrolled_count }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($enrollment->revenue, 2) }}</td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Close') }}</button>
+                <button type="submit" form="addCourseForm" class="btn btn-primary">{{ __('Add Course') }}</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Add Regular Course Modal -->
-<div class="modal fade" id="addRegularCourseModal" tabindex="-1" aria-labelledby="addRegularCourseModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="bg-white rounded-lg shadow-xl">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-medium text-gray-900" id="addRegularCourseModalLabel">Add Regular Course</h3>
+<!-- Edit Course Modal -->
+<div class="modal fade" id="editCourseModal" tabindex="-1" role="dialog" aria-labelledby="editCourseModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editCourseModalLabel">{{ __('Edit Course') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('courses.store') }}" method="POST">
-                @csrf
-                <input type="hidden" name="type" value="regular">
-                <div class="px-6 py-4 space-y-4">
-                    <div>
-                        <label for="matiere" class="block text-sm font-medium text-gray-700">Course Name</label>
-                        <input type="text" name="matiere" id="matiere" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                    </div>
-                    <div>
-                        <label for="niveau_scolaire" class="block text-sm font-medium text-gray-700">School Level</label>
-                        <select name="niveau_scolaire" id="niveau_scolaire" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                            <option value="premiere_school">Premiere School</option>
-                            <option value="2_first_middle_niveau">2 First Middle Niveau</option>
-                            <option value="3ac">3AC</option>
-                            <option value="high_school">High School</option>
+            <div class="modal-body">
+                <form id="editCourseForm" method="POST">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" id="edit_id" name="id">
+                    <div class="form-group mb-3">
+                        <label for="edit_matiere" class="form-label">{{ __('Subject') }}</label>
+                        <select class="form-select" id="edit_matiere" name="matiere" required>
+                            <option value="Mathématiques">{{ __('Mathématiques') }}</option>
+                            <option value="Physique">{{ __('Physique') }}</option>
+                            <option value="SVT">{{ __('SVT') }}</option>
+                            <option value="Français">{{ __('Français') }}</option>
+                            <option value="Anglais">{{ __('Anglais') }}</option>
+                            <option value="Histoire-Géographie">{{ __('Histoire-Géographie') }}</option>
+                            <option value="Arabe">{{ __('Arabe') }}</option>
+                            <option value="Islamique">{{ __('Islamique') }}</option>
                         </select>
                     </div>
-                    <div>
-                        <label for="prix" class="block text-sm font-medium text-gray-700">Price</label>
-                        <input type="number" name="prix" id="prix" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                    <div class="form-group mb-3">
+                        <label for="edit_niveau_scolaire" class="form-label">{{ __('School Level') }}</label>
+                        <select class="form-select" id="edit_niveau_scolaire" name="niveau_scolaire" required>
+                            <option value="premiere_school">{{ __('Première School') }}</option>
+                            <option value="1ac">{{ __('1AC') }}</option>
+                            <option value="2ac">{{ __('2AC') }}</option>
+                            <option value="3ac">{{ __('3AC') }}</option>
+                            <option value="tronc_commun">{{ __('Tronc Commun') }}</option>
+                            <option value="deuxieme_annee">{{ __('2ème Année') }}</option>
+                            <option value="bac">{{ __('BAC') }}</option>
+                        </select>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Is Combined Course?</label>
-                        <div class="mt-2">
-                            <label class="inline-flex items-center">
-                                <input type="checkbox" name="is_combined" id="is_combined" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500" value="1">
-                                <span class="ml-2 text-sm text-gray-600">Yes</span>
-                            </label>
-                        </div>
+                    <div class="form-group mb-3">
+                        <label for="edit_prix" class="form-label">{{ __('Price') }}</label>
+                        <input type="number" class="form-control" id="edit_prix" name="prix" required>
                     </div>
-                    <div class="combined-with-group hidden">
-                        <label for="combined_with" class="block text-sm font-medium text-gray-700">Combined With</label>
-                        <input type="text" name="combined_with" id="combined_with" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <div class="form-group mb-3">
+                        <label for="edit_type" class="form-label">{{ __('Type') }}</label>
+                        <select class="form-select" id="edit_type" name="type" required>
+                            <option value="regular">{{ __('Regular') }}</option>
+                            <option value="communication">{{ __('Communication') }}</option>
+                        </select>
                     </div>
-                </div>
-                <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Save Course</button>
-                </div>
-            </form>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Close') }}</button>
+                <button type="submit" form="editCourseForm" class="btn btn-primary">{{ __('Save Changes') }}</button>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Add Communication Course Modal -->
-<div class="modal fade" id="addCommunicationCourseModal" tabindex="-1" aria-labelledby="addCommunicationCourseModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="bg-white rounded-lg shadow-xl">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-medium text-gray-900" id="addCommunicationCourseModalLabel">Add Communication Course</h3>
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteCourseModal" tabindex="-1" role="dialog" aria-labelledby="deleteCourseModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteCourseModalLabel">{{ __('Delete Course') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('courses.store') }}" method="POST">
-                @csrf
-                <input type="hidden" name="type" value="communication">
-                <div class="px-6 py-4 space-y-4">
-                    <div>
-                        <label for="matiere" class="block text-sm font-medium text-gray-700">Course Name</label>
-                        <select name="matiere" id="matiere" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                            <option value="communication_anglais">Communication Anglais</option>
-                            <option value="communication_francais">Communication Francais</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="niveau_scolaire" class="block text-sm font-medium text-gray-700">School Level</label>
-                        <select name="niveau_scolaire" id="niveau_scolaire" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                            <option value="premiere_school">Premiere School</option>
-                            <option value="2_first_middle_niveau">2 First Middle Niveau</option>
-                            <option value="3ac">3AC</option>
-                            <option value="high_school">High School</option>
-                        </select>
-                    </div>
-                    <input type="hidden" name="prix" value="150">
-                </div>
-                <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Save Course</button>
-                </div>
-            </form>
+            <div class="modal-body">
+                <p>{{ __('Are you sure you want to delete this course?') }}</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                <form id="deleteCourseForm" method="POST" style="display: inline;">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger">{{ __('Delete') }}</button>
+                </form>
+            </div>
         </div>
     </div>
-</div>
+</div> --}}
 
+@push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Tab switching functionality
-        const tabButtons = document.querySelectorAll('.tab-button');
-        const tabPanes = document.querySelectorAll('.tab-pane');
+    function showAddCourseModal() {
+        const modal = new bootstrap.Modal(document.getElementById('addCourseModal'));
+        modal.show();
+    }
 
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const tabId = button.getAttribute('data-tab');
-                
-                // Update button styles
-                tabButtons.forEach(btn => {
-                    btn.classList.remove('border-blue-500', 'text-blue-600');
-                    btn.classList.add('border-transparent', 'text-gray-500');
-                });
-                button.classList.remove('border-transparent', 'text-gray-500');
-                button.classList.add('border-blue-500', 'text-blue-600');
-                
-                // Show/hide tab panes
-                tabPanes.forEach(pane => {
-                    pane.classList.add('hidden');
-                    if (pane.id === tabId) {
-                        pane.classList.remove('hidden');
-                    }
-                });
-            });
-        });
-
-        // Handle combined course checkbox
-        const isCombinedCheckbox = document.getElementById('is_combined');
-        const combinedWithGroup = document.querySelector('.combined-with-group');
-
-        if (isCombinedCheckbox && combinedWithGroup) {
-            isCombinedCheckbox.addEventListener('change', function() {
-                combinedWithGroup.classList.toggle('hidden', !this.checked);
-            });
+    function showEditCourseModal(id, matiere, niveau_scolaire, prix, type) {
+        document.getElementById('edit_id').value = id;
+        document.getElementById('edit_matiere').value = matiere;
+        document.getElementById('edit_niveau_scolaire').value = niveau_scolaire;
+        document.getElementById('edit_prix').value = prix;
+        document.getElementById('edit_type').value = type;
+        
+        const form = document.getElementById('editCourseForm');
+        if (type === 'regular') {
+            form.action = '/courses/update/' + id;
+        } else {
+            form.action = '/communication-courses/update/' + id;
         }
+        
+        const modal = new bootstrap.Modal(document.getElementById('editCourseModal'));
+        modal.show();
+    }
 
-        // Set default prices based on school level
-        const niveauSelect = document.getElementById('niveau_scolaire');
-        const prixInput = document.getElementById('prix');
+    function deleteCourse(id, type) {
+        const form = document.getElementById('deleteCourseForm');
+        if (type === 'regular') {
+            form.action = '/courses/destroy/' + id;
+        } else {
+            form.action = '/communication-courses/destroy/' + id;
+        }
+        
+        const modal = new bootstrap.Modal(document.getElementById('deleteCourseModal'));
+        modal.show();
+    }
 
-        if (niveauSelect && prixInput) {
-            niveauSelect.addEventListener('change', function() {
-                const niveau = this.value;
-                let defaultPrice = 0;
+    // Set default prices based on school level
+    document.getElementById('niveau_scolaire').addEventListener('change', function() {
+        const level = this.value;
+        const priceInput = document.getElementById('prix');
+        
+        switch(level) {
+            case 'premiere_school':
+            case '1ac':
+            case '2ac':
+                priceInput.value = '100';
+                break;
+            case '3ac':
+                priceInput.value = '130';
+                break;
+            case 'tronc_commun':
+                priceInput.value = '150';
+                break;
+            case 'deuxieme_annee':
+            case 'bac':
+                priceInput.value = '150';
+                break;
+        }
+    });
 
-                switch (niveau) {
-                    case 'premiere_school':
-                        defaultPrice = 100;
-                        break;
-                    case '2_first_middle_niveau':
-                        defaultPrice = 100;
-                        break;
-                    case '3ac':
-                        defaultPrice = 130;
-                        break;
-                    case 'high_school':
-                        defaultPrice = 150;
-                        break;
-                }
-
-                prixInput.value = defaultPrice;
-            });
+    // Set the form action based on course type
+    document.getElementById('type').addEventListener('change', function() {
+        const type = this.value;
+        const form = document.getElementById('addCourseForm');
+        
+        if (type === 'regular') {
+            form.action = '/courses/store';
+        } else {
+            form.action = '/communication-courses/store';
         }
     });
 </script>
+@endpush
 @endsection 

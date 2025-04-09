@@ -12,6 +12,12 @@
                     </svg>
                     Edit
                 </a>
+                <a href="{{ route('students.receipt', $student) }}" class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" target="_blank">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Download Receipt
+                </a>
                 <a href="{{ route('students.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
@@ -97,7 +103,11 @@
                             <span class="text-sm {{ $student->isPaymentExpired() ? 'text-red-600 font-medium' : 'text-gray-900' }}">
                                 {{ $student->payment_expiry ? $student->payment_expiry->format('Y-m-d') : 'N/A' }}
                                 @if($student->payment_expiry)
-                                    ({{ $student->getRemainingDays() }} days remaining)
+                                    @if($student->enrollment_date && $student->enrollment_date->gt(now()))
+                                        <span class="text-purple-600 font-medium">(Future enrollment - starts in {{ now()->diffInDays($student->enrollment_date) }} days)</span>
+                                    @else
+                                        ({{ $student->getRemainingDays() }} days remaining)
+                                    @endif
                                 @endif
                             </span>
                         </div>
@@ -170,6 +180,29 @@
                 </a>
             </div>
         </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <div class="d-flex gap-2">
+        <a href="{{ route('students.edit', $student) }}" class="btn btn-primary">Edit</a>
+        <form action="{{ route('students.receipt', $student->id) }}" method="GET" class="d-inline">
+            <div class="d-flex align-items-center">
+                <div class="me-2">
+                    <select name="pdf_language" class="form-select form-select-sm">
+                        <option value="en">English</option>
+                        <option value="fr">French</option>
+                        <option value="ar">Arabic</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-success">Generate Receipt</button>
+            </div>
+        </form>
+        <form action="{{ route('students.destroy', $student) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this student?');">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-danger">Delete</button>
+        </form>
     </div>
 </div>
 @endsection 

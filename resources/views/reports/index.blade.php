@@ -14,15 +14,23 @@
         </h1>
         
         <div class="flex space-x-2">
-            <a href="{{ route('reports.export.students.pdf') }}" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-                @if(session('locale') == 'fr')
-                    Exporter Étudiants (PDF)
-                @elseif(session('locale') == 'ar')
-                    تصدير الطلاب (PDF)
-                @else
-                    Export Students (PDF)
-                @endif
-            </a>
+            <form action="{{ route('export.pdf') }}" method="POST" class="flex items-center space-x-2">
+                @csrf
+                <select name="pdf_language" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                    <option value="en">English</option>
+                    <option value="fr">French</option>
+                    <option value="ar">Arabic</option>
+                </select>
+                <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                    @if(session('locale') == 'fr')
+                        Exporter tous les étudiants (PDF)
+                    @elseif(session('locale') == 'ar')
+                        تصدير الطلاب (PDF)
+                    @else
+                        Export Students (PDF)
+                    @endif
+                </button>
+            </form>
             <a href="{{ route('reports.export.students') }}" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
                 @if(session('locale') == 'fr')
                     Exporter Étudiants (CSV)
@@ -32,6 +40,62 @@
                     Export Students (CSV)
                 @endif
             </a>
+        </div>
+    </div>
+    
+    <!-- Filter Section -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Filters</h2>
+        <form action="{{ route('reports.index') }}" method="GET" class="flex flex-wrap items-end gap-4 mb-4">
+            <div>
+                <label for="level" class="block text-sm font-medium text-gray-700 mb-1">Education Level</label>
+                <select id="level" name="niveau_scolaire" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">All Levels</option>
+                    <option value="premiere_school" {{ request('niveau_scolaire') == 'premiere_school' ? 'selected' : '' }}>Première School</option>
+                    <option value="1ac" {{ request('niveau_scolaire') == '1ac' ? 'selected' : '' }}>1st Middle School</option>
+                    <option value="2ac" {{ request('niveau_scolaire') == '2ac' ? 'selected' : '' }}>2nd Middle School</option>
+                    <option value="3ac" {{ request('niveau_scolaire') == '3ac' ? 'selected' : '' }}>3AC</option>
+                    <option value="tronc_commun" {{ request('niveau_scolaire') == 'tronc_commun' ? 'selected' : '' }}>Tronc Commun</option>
+                    <option value="deuxieme_annee" {{ request('niveau_scolaire') == 'deuxieme_annee' ? 'selected' : '' }}>Deuxième Année</option>
+                    <option value="bac" {{ request('niveau_scolaire') == 'bac' ? 'selected' : '' }}>Bac</option>
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Apply Filter
+                </button>
+            </div>
+        </form>
+        
+        <div>
+            <h3 class="text-md font-medium text-gray-700 mb-2">Export Students by Level:</h3>
+            
+            <form action="{{ route('export.pdf') }}" method="POST" class="flex flex-wrap items-center mb-4">
+                @csrf
+                <div class="mr-2 mb-2">
+                    <select name="niveau_scolaire" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                        <option value="premiere_school">Première School</option>
+                        <option value="1ac">1st Middle School</option>
+                        <option value="2ac">2nd Middle School</option>
+                        <option value="3ac">3AC</option>
+                        <option value="tronc_commun">Tronc Commun</option>
+                        <option value="deuxieme_annee">Deuxième Année Lycée</option>
+                        <option value="bac">Bac</option>
+                    </select>
+                </div>
+                
+                <div class="mr-2 mb-2">
+                    <select name="pdf_language" class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                        <option value="en">English</option>
+                        <option value="fr">French</option>
+                        <option value="ar">Arabic</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700">
+                    Export Level PDF
+                </button>
+            </form>
         </div>
     </div>
     
@@ -94,15 +158,26 @@
                     Monthly Revenue
                 @endif
             </h2>
-            <a href="{{ route('reports.monthly') }}" class="text-blue-500 hover:text-blue-700 text-sm">
-                @if(session('locale') == 'fr')
-                    Voir le rapport détaillé
-                @elseif(session('locale') == 'ar')
-                    عرض التقرير المفصل
-                @else
-                    View detailed report
-                @endif
-            </a>
+            <div class="flex space-x-4">
+                <a href="{{ route('reports.monthly-breakdown') }}" class="text-blue-500 hover:text-blue-700 text-sm">
+                    @if(session('locale') == 'fr')
+                        Voir la répartition mensuelle
+                    @elseif(session('locale') == 'ar')
+                        عرض التقسيم الشهري
+                    @else
+                        View monthly breakdown
+                    @endif
+                </a>
+                <a href="{{ route('reports.monthly') }}" class="text-blue-500 hover:text-blue-700 text-sm">
+                    @if(session('locale') == 'fr')
+                        Voir le rapport détaillé
+                    @elseif(session('locale') == 'ar')
+                        عرض التقرير المفصل
+                    @else
+                        View detailed report
+                    @endif
+                </a>
+            </div>
         </div>
         
         <div class="h-80">
@@ -147,6 +222,15 @@
                                     Subject
                                 @endif
                             </th>
+                            <th class="py-2 px-4 text-center text-sm font-semibold text-gray-600">
+                                @if(session('locale') == 'fr')
+                                    Nombre d'étudiants
+                                @elseif(session('locale') == 'ar')
+                                    عدد الطلاب
+                                @else
+                                    Students
+                                @endif
+                            </th>
                             <th class="py-2 px-4 text-right text-sm font-semibold text-gray-600">
                                 @if(session('locale') == 'fr')
                                     Revenu
@@ -162,7 +246,8 @@
                         @foreach($revenueBySubject as $subject)
                         <tr>
                             <td class="py-3 px-4 text-sm text-gray-800">{{ $subject['subject'] }}</td>
-                            <td class="py-3 px-4 text-right text-sm text-gray-800">{{ number_format($subject['revenue'], 2) }} DH</td>
+                            <td class="py-3 px-4 text-center text-sm text-gray-800">{{ $subject['total_students'] ?? 0 }}</td>
+                            <td class="py-3 px-4 text-right text-sm text-gray-800">{{ number_format($subject['total_revenue'], 2) }} DH</td>
                         </tr>
                         @endforeach
                     </tbody>

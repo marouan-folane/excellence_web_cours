@@ -46,6 +46,17 @@ class DatabaseSeeder extends Seeder
         User::factory()->count(5)->create();
 
         // Call the course seeders
-       
+        
+        // Call other seeders
+        $this->call([
+            UserSeeder::class,
+            // App\Providers\AuthServiceProvider::class, // Not available in this application
+            // App\Providers\BroadcastServiceProvider::class,
+            // App\Providers\EventServiceProvider::class, // Not available in this application
+            // App\Providers\RouteServiceProvider::class, // Not available in this application
+            // App\Providers\DomPdfServiceProvider::class, // Using Dompdf directly instead
+            HighSchoolSubjectsSeeder::class,
+            HighSchoolCommunicationCoursesSeeder::class,
+        ]);
     }
 }

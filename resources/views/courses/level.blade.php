@@ -1,8 +1,25 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+$levelName = '';
+if($niveau_scolaire == 'premiere_school') {
+    $levelName = 'Première École';
+} elseif($niveau_scolaire == '1ac') {
+    $levelName = '1ère Année Collège';
+} elseif($niveau_scolaire == '2ac') {
+    $levelName = '2ème Année Collège';
+} elseif($niveau_scolaire == '3ac') {
+    $levelName = '3ème Année Collège';
+} elseif($niveau_scolaire == 'high_school') {
+    $levelName = 'Lycée';
+} else {
+    $levelName = ucfirst(str_replace('_', ' ', $niveau_scolaire));
+}
+@endphp
+
 <div class="pricing-header p-3 pb-md-4 mx-auto text-center">
-    <h1 class="display-4 fw-normal">{{ ucfirst(str_replace('_', ' ', $niveau_scolaire)) }} Courses</h1>
+    <h1 class="display-4 fw-normal">{{ $levelName }} Courses</h1>
     <p class="fs-5 text-muted">Enroll students in courses for this level</p>
 </div>
 

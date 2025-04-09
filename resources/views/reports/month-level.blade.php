@@ -89,15 +89,6 @@
                                 Month
                             @endif
                         </th>
-                        <th class="py-2 px-4 text-center text-sm font-semibold text-gray-600">
-                            @if(session('locale') == 'fr')
-                                Nombre d'étudiants
-                            @elseif(session('locale') == 'ar')
-                                عدد الطلاب
-                            @else
-                                Student Count
-                            @endif
-                        </th>
                         <th class="py-2 px-4 text-right text-sm font-semibold text-gray-600">
                             @if(session('locale') == 'fr')
                                 Revenu
@@ -105,6 +96,15 @@
                                 الإيرادات
                             @else
                                 Revenue
+                            @endif
+                        </th>
+                        <th class="py-2 px-4 text-center text-sm font-semibold text-gray-600">
+                            @if(session('locale') == 'fr')
+                                Nombre d'étudiants
+                            @elseif(session('locale') == 'ar')
+                                عدد الطلاب
+                            @else
+                                Student Count
                             @endif
                         </th>
                     </tr>
@@ -115,15 +115,15 @@
                         $totalStudents = 0;
                     @endphp
                     
-                    @foreach($monthlyData as $data)
+                    @foreach($monthlyData as $index => $month)
                         @php
-                            $totalRevenue += $data['revenue'];
-                            $totalStudents += $data['count'];
+                            $totalRevenue += $month['revenue'];
+                            $totalStudents += $month['students'];
                         @endphp
                         <tr>
-                            <td class="py-3 px-4 text-sm text-gray-800">{{ $data['month'] }}</td>
-                            <td class="py-3 px-4 text-center text-sm text-gray-800">{{ $data['count'] }}</td>
-                            <td class="py-3 px-4 text-right text-sm text-gray-800">{{ number_format($data['revenue'], 2) }} DH</td>
+                            <td class="px-4 py-3">{{ $month['month'] }}</td>
+                            <td class="px-4 py-3 text-right">{{ number_format($month['revenue'], 2) }} DH</td>
+                            <td class="px-4 py-3 text-center">{{ $month['students'] }}</td>
                         </tr>
                     @endforeach
                     
@@ -138,8 +138,8 @@
                                 TOTAL
                             @endif
                         </td>
-                        <td class="py-3 px-4 text-center text-sm text-gray-800">{{ $totalStudents }}</td>
                         <td class="py-3 px-4 text-right text-sm text-gray-800">{{ number_format($totalRevenue, 2) }} DH</td>
+                        <td class="py-3 px-4 text-center text-sm text-gray-800">{{ $totalStudents }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -191,15 +191,6 @@
                                 Month
                             @endif
                         </th>
-                        <th class="py-2 px-4 text-center text-sm font-semibold text-gray-600">
-                            @if(session('locale') == 'fr')
-                                Nombre d'étudiants
-                            @elseif(session('locale') == 'ar')
-                                عدد الطلاب
-                            @else
-                                Student Count
-                            @endif
-                        </th>
                         <th class="py-2 px-4 text-right text-sm font-semibold text-gray-600">
                             @if(session('locale') == 'fr')
                                 Revenu
@@ -207,6 +198,15 @@
                                 الإيرادات
                             @else
                                 Revenue
+                            @endif
+                        </th>
+                        <th class="py-2 px-4 text-center text-sm font-semibold text-gray-600">
+                            @if(session('locale') == 'fr')
+                                Nombre d'étudiants
+                            @elseif(session('locale') == 'ar')
+                                عدد الطلاب
+                            @else
+                                Student Count
                             @endif
                         </th>
                     </tr>
@@ -227,8 +227,8 @@
                         @endphp
                         <tr>
                             <td class="py-3 px-4 text-sm text-gray-800">{{ $monthName }}</td>
-                            <td class="py-3 px-4 text-center text-sm text-gray-800">{{ $monthCount }}</td>
                             <td class="py-3 px-4 text-right text-sm text-gray-800">{{ number_format($monthRevenue, 2) }} DH</td>
+                            <td class="py-3 px-4 text-center text-sm text-gray-800">{{ $monthCount }}</td>
                         </tr>
                     @endforeach
                     
@@ -243,8 +243,8 @@
                                 TOTAL
                             @endif
                         </td>
-                        <td class="py-3 px-4 text-center text-sm text-gray-800">{{ $levelTotalStudents }}</td>
                         <td class="py-3 px-4 text-right text-sm text-gray-800">{{ number_format($levelTotalRevenue, 2) }} DH</td>
+                        <td class="py-3 px-4 text-center text-sm text-gray-800">{{ $levelTotalStudents }}</td>
                     </tr>
                 </tbody>
             </table>

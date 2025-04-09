@@ -90,16 +90,8 @@
                                 Status
                             @endif
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            @if(session('locale') == 'fr')
-                                Statut de Paiement
-                            @elseif(session('locale') == 'ar')
-                                حالة الدفع
-                            @else
-                                Payment Status
-                            @endif
-                        </th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                       
+                        {{-- <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                             @if(session('locale') == 'fr')
                                 Actions
                             @elseif(session('locale') == 'ar')
@@ -107,7 +99,7 @@
                             @else
                                 Actions
                             @endif
-                        </th>
+                        </th> --}}
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -118,27 +110,55 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             @if(session('locale') == 'fr')
                                 @if($enrollment->niveau_scolaire == 'premiere_school')
-                                    Première École
-                                @elseif($enrollment->niveau_scolaire == '2_first_middle_niveau')
-                                    2ème Niveau Collège
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        Première École
+                                    </span>
+                                @elseif($enrollment->niveau_scolaire == '1ac')
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        1ère Année Collège
+                                    </span>
+                                @elseif($enrollment->niveau_scolaire == '2ac')
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        2ème Année Collège
+                                    </span>
                                 @elseif($enrollment->niveau_scolaire == '3ac')
-                                    3ème Année Collège
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        3ème Année Collège
+                                    </span>
                                 @elseif($enrollment->niveau_scolaire == 'high_school')
-                                    Lycée
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                        Lycée
+                                    </span>
                                 @else
-                                    {{ $enrollment->niveau_scolaire }}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        {{ $enrollment->niveau_scolaire }}
+                                    </span>
                                 @endif
                             @elseif(session('locale') == 'ar')
                                 @if($enrollment->niveau_scolaire == 'premiere_school')
-                                    المدرسة الابتدائية
-                                @elseif($enrollment->niveau_scolaire == '2_first_middle_niveau')
-                                    المستوى الثاني متوسط
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        المدرسة الابتدائية
+                                    </span>
+                                @elseif($enrollment->niveau_scolaire == '1ac')
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        السنة الأولى متوسط
+                                    </span>
+                                @elseif($enrollment->niveau_scolaire == '2ac')
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        السنة الثانية متوسط
+                                    </span>
                                 @elseif($enrollment->niveau_scolaire == '3ac')
-                                    السنة الثالثة متوسط
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        السنة الثالثة متوسط
+                                    </span>
                                 @elseif($enrollment->niveau_scolaire == 'high_school')
-                                    الثانوية
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                        الثانوية
+                                    </span>
                                 @else
-                                    {{ $enrollment->niveau_scolaire }}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        {{ $enrollment->niveau_scolaire }}
+                                    </span>
                                 @endif
                             @else
                                 {{ $enrollment->niveau_scolaire }}
@@ -163,7 +183,7 @@
                                 @endif
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        {{-- <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                 {{ $enrollment->payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
                                 @if(session('locale') == 'fr')
@@ -174,8 +194,8 @@
                                     {{ ucfirst($enrollment->payment_status) }}
                                 @endif
                             </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
+                        </td> --}}
+                        {{-- <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
                             <a href="#" class="text-blue-600 hover:text-blue-900 mx-1">
                                 @if(session('locale') == 'fr')
                                     Voir
@@ -185,7 +205,7 @@
                                     View
                                 @endif
                             </a>
-                        </td>
+                        </td> --}}
                     </tr>
                     @endforeach
                 </tbody>

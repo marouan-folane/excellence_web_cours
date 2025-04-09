@@ -60,9 +60,18 @@
                             Primary School
                         @endif
                     </option>
-                    <option value="2_first_middle_niveau" {{ request('level') == '2_first_middle_niveau' ? 'selected' : '' }}>
+                    <option value="1ac" {{ request('level') == '1ac' ? 'selected' : '' }}>
                         @if(session('locale') == 'fr')
-                            2ème Niveau Collège
+                            1ère Année Collège
+                        @elseif(session('locale') == 'ar')
+                            المستوى الأول متوسط
+                        @else
+                            1st Middle School
+                        @endif
+                    </option>
+                    <option value="2ac" {{ request('level') == '2ac' ? 'selected' : '' }}>
+                        @if(session('locale') == 'fr')
+                            2ème Année Collège
                         @elseif(session('locale') == 'ar')
                             المستوى الثاني متوسط
                         @else
@@ -78,15 +87,9 @@
                             3rd Middle School
                         @endif
                     </option>
-                    <option value="high_school" {{ request('level') == 'high_school' ? 'selected' : '' }}>
-                        @if(session('locale') == 'fr')
-                            Lycée
-                        @elseif(session('locale') == 'ar')
-                            الثانوية
-                        @else
-                            High School
-                        @endif
-                    </option>
+                    <option value="tronc_commun" {{ request('level') == 'tronc_commun' ? 'selected' : '' }}>Tronc Commun</option>
+                    <option value="deuxieme_annee" {{ request('level') == 'deuxieme_annee' ? 'selected' : '' }}>2ème Année Lycée</option>
+                    <option value="bac" {{ request('level') == 'bac' ? 'selected' : '' }}>Baccalauréat</option>
                 </select>
             </div>
             <div class="mt-6">

@@ -1,0 +1,41 @@
+@font-face {
+    font-family: 'Amiri';
+    font-style: normal;
+    font-weight: normal;
+    src: url({{ storage_path('fonts/Amiri-Regular.ttf') }});
+}
+
+@font-face {
+    font-family: 'Amiri';
+    font-style: normal;
+    font-weight: bold;
+    src: url({{ storage_path('fonts/Amiri-Bold.ttf') }});
+}
+
+body {
+    font-family: 'Amiri', sans-serif;
+    direction: rtl;
+    text-align: right;
+}
+
+table {
+    direction: rtl;
+    text-align: right;
+}
+
+th, td {
+    text-align: right;
+}
+
+.amount {
+    text-align: left;
+}
+
+.header, .footer {
+    text-align: center;
+}
+
+h1 {
+    font-family: 'Amiri', sans-serif;
+    font-weight: bold;
+} 

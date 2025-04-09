@@ -28,8 +28,27 @@
                 </div>
             @endif
 
-            <div class="alert alert-info">
-                <strong>Total Monthly Revenue: </strong>{{ number_format($totalRevenue, 2) }} DH
+            <!-- Total Revenue -->
+            <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-500 mr-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium text-gray-500">
+                            @if(session('locale') == 'fr')
+                                Revenu Total
+                            @elseif(session('locale') == 'ar')
+                                إجمالي الإيرادات
+                            @else
+                                Total Revenue
+                            @endif
+                        </div>
+                        <div class="text-xl font-semibold text-gray-800">{{ number_format($totalRevenue, 2) }} DH</div>
+                    </div>
+                </div>
             </div>
 
             <div class="table-responsive">
@@ -46,7 +65,7 @@
                     <tbody>
                         @forelse ($enrollments as $enrollment)
                             <tr>
-                                <td>{{ $enrollment->course_name }}</td>
+                                <td>{{ $enrollment->matiere }}</td>
                                 <td>
                                     @if($enrollment->course_type == 'regular')
                                         <span class="badge bg-secondary">Regular</span>
@@ -54,9 +73,9 @@
                                         <span class="badge bg-info">Communication</span>
                                     @endif
                                 </td>
-                                <td class="text-end">{{ number_format($enrollment->price, 2) }} DH</td>
+                                <td class="text-end">{{ number_format($enrollment->prix, 2) }} DH</td>
                                 <td class="text-end">{{ $enrollment->total_students }}</td>
-                                <td class="text-end">{{ number_format($enrollment->total_revenue, 2) }} DH</td>
+                                <td class="text-end">{{ number_format($enrollment->revenue, 2) }} DH</td>
                             </tr>
                         @empty
                             <tr>
@@ -78,7 +97,11 @@
                     @if($level == 'premiere_school')
                         Each regular subject: 100 DH per student<br>
                         Communication courses: 150 DH per student
-                    @elseif($level == '2_first_middle_niveau')
+                    @elseif($level == '1ac')
+                        Each regular subject: 100 DH per student<br>
+                        SVT+PC combined: 150 DH per student (special bundle)<br>
+                        Communication courses: 150 DH per student
+                    @elseif($level == '2ac')
                         Each regular subject: 100 DH per student<br>
                         SVT+PC combined: 150 DH per student (special bundle)<br>
                         Communication courses: 150 DH per student
@@ -88,6 +111,8 @@
                     @elseif($level == 'high_school')
                         Each regular subject: 150 DH per student<br>
                         Communication courses: 150 DH per student
+                    @else
+                        Variable pricing by subject
                     @endif
                 </div>
             </div>

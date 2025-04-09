@@ -99,13 +99,8 @@
                                 <p class="mt-1 text-xs text-gray-500">Payment expiry will be calculated based on this value.</p>
                             </div>
                             
-                            <div>
-                                <label for="student_count" class="block text-sm font-medium text-gray-700 mb-1">Number of Students *</label>
-                                <input type="number" id="student_count" name="student_count" 
-                                       value="{{ old('student_count', 1) }}" min="1" 
-                                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                                <p class="mt-1 text-xs text-gray-500">For group enrollments.</p>
-                            </div>
+                            <!-- Hidden student_count field, always set to 1 -->
+                            <input type="hidden" id="student_count" name="student_count" value="1">
                         </div>
                         
                         <div class="mt-4">
@@ -188,81 +183,60 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Filter courses for the selected level
+        // Debug: Log all courses to see what's available
+        console.log('All courses array:', courses);
+        console.log('All communication courses:', communicationCourses);
+        
+        // Filter courses for the selected level - ensure exact match for level
         const levelCourses = courses.filter(course => course.niveau_scolaire === selectedLevel);
         const levelCommCourses = communicationCourses.filter(course => course.niveau_scolaire === selectedLevel);
         
-        console.log('Filtered regular courses:', levelCourses);
-        console.log('Filtered communication courses:', levelCommCourses);
+        console.log('Filtered courses for level ' + selectedLevel + ':', levelCourses);
+        console.log('Filtered communication courses for level ' + selectedLevel + ':', levelCommCourses);
         
         if (levelCourses.length === 0 && levelCommCourses.length === 0) {
-            coursesContainer.innerHTML = '<div class="text-gray-500 text-sm">No courses available for this level</div>';
+            coursesContainer.innerHTML = '<div class="text-gray-500 text-sm">No courses available for this level. Please add courses for ' + selectedLevel + ' first.</div>';
             return;
         }
         
-        let html = '';
-        
-        // Regular Courses Section
+        // Create HTML for regular courses
+        let coursesHtml = '';
         if (levelCourses.length > 0) {
-            html += '<div class="mb-4"><div class="font-medium text-gray-800 mb-2">';
-            
-            if (document.documentElement.lang === 'fr') {
-                html += 'Cours Réguliers:';
-            } else if (document.documentElement.lang === 'ar') {
-                html += 'الدورات العادية:';
-            } else {
-                html += 'Regular Courses:';
-            }
-            
-            html += '</div>';
-            
+            coursesHtml += '<div class="mb-4"><h3 class="text-sm font-medium text-gray-700 mb-2">Regular Courses</h3>';
             levelCourses.forEach(course => {
-                html += `
-                    <div class="flex items-start mb-2">
-                        <input type="checkbox" id="course_${course.id}" name="course_ids[]" 
-                               value="${course.id}" class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                coursesHtml += `
+                    <div class="flex items-center mb-2">
+                        <input type="checkbox" id="course_${course.id}" name="course_ids[]" value="${course.id}" 
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                                onchange="updateSelectedCourses()">
-                        <label for="course_${course.id}" class="ml-2 block text-sm flex-1 flex justify-between items-center">
-                            <span>${course.matiere}</span>
-                            <span class="text-blue-600 font-medium">${course.prix} DH</span>
+                        <label for="course_${course.id}" class="ml-2 text-sm text-gray-700">
+                            ${course.matiere} (${course.prix} DH)
                         </label>
                     </div>
                 `;
             });
-            html += '</div>';
+            coursesHtml += '</div>';
         }
         
-        // Communication Courses Section
+        // Create HTML for communication courses
         if (levelCommCourses.length > 0) {
-            html += '<div><div class="font-medium text-gray-800 mb-2">';
-            
-            if (document.documentElement.lang === 'fr') {
-                html += 'Cours de Communication:';
-            } else if (document.documentElement.lang === 'ar') {
-                html += 'دورات التواصل:';
-            } else {
-                html += 'Communication Courses:';
-            }
-            
-            html += '</div>';
-            
+            coursesHtml += '<div class="mb-4"><h3 class="text-sm font-medium text-gray-700 mb-2">Communication Courses</h3>';
             levelCommCourses.forEach(course => {
-                html += `
-                    <div class="flex items-start mb-2">
-                        <input type="checkbox" id="comm_course_${course.id}" name="comm_course_ids[]" 
-                               value="${course.id}" class="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                coursesHtml += `
+                    <div class="flex items-center mb-2">
+                        <input type="checkbox" id="comm_course_${course.id}" name="comm_course_ids[]" value="${course.id}" 
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                                onchange="updateSelectedCourses()">
-                        <label for="comm_course_${course.id}" class="ml-2 block text-sm flex-1 flex justify-between items-center">
-                            <span>${course.matiere}</span>
-                            <span class="text-purple-600 font-medium">${course.prix} DH</span>
+                        <label for="comm_course_${course.id}" class="ml-2 text-sm text-gray-700">
+                            ${course.matiere} (${course.prix} DH)
                         </label>
                     </div>
                 `;
             });
-            html += '</div>';
+            coursesHtml += '</div>';
         }
         
-        coursesContainer.innerHTML = html;
+        coursesContainer.innerHTML = coursesHtml || '<div class="text-gray-500 text-sm">No courses available for this level</div>';
     }
     
     function updateSelectedCourses() {
@@ -379,7 +353,20 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Calculate expiry date (add months to enrollment date)
         const expiryDate = new Date(enrollmentDate);
-        expiryDate.setMonth(expiryDate.getMonth() + months);
+        
+        // Properly calculate months from the enrollment date
+        // This ensures that if enrollment is Sept 15, and months is 3, 
+        // the expiry will be Dec 15 (not just adding 90 days)
+        const newMonth = expiryDate.getMonth() + months;
+        expiryDate.setMonth(newMonth);
+        
+        // Handle month overflow (e.g., Jan 31 + 1 month should be Feb 28/29)
+        // Check if the day of the month is different after setting the new month
+        if (expiryDate.getDate() !== enrollmentDate.getDate()) {
+            // If different, it means we've crossed into the next month
+            // Set the date to the last day of the previous month
+            expiryDate.setDate(0);
+        }
         
         // Format date as YYYY-MM-DD
         const year = expiryDate.getFullYear();

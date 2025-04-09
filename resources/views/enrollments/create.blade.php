@@ -157,8 +157,10 @@
                                     @if(session('locale') == 'fr')
                                         @if($value == 'premiere_school')
                                             Première École
-                                        @elseif($value == '2_first_middle_niveau')
-                                            2ème Niveau Collège
+                                        @elseif($value == '1ac')
+                                            1ère Année Collège
+                                        @elseif($value == '2ac')
+                                            2ème Année Collège
                                         @elseif($value == '3ac')
                                             3ème Année Collège
                                         @elseif($value == 'high_school')
@@ -169,8 +171,10 @@
                                     @elseif(session('locale') == 'ar')
                                         @if($value == 'premiere_school')
                                             المدرسة الابتدائية
-                                        @elseif($value == '2_first_middle_niveau')
-                                            المستوى الثاني متوسط
+                                        @elseif($value == '1ac')
+                                            السنة الأولى متوسط
+                                        @elseif($value == '2ac')
+                                            السنة الثانية متوسط
                                         @elseif($value == '3ac')
                                             السنة الثالثة متوسط
                                         @elseif($value == 'high_school')
@@ -210,6 +214,19 @@
                             @endif
                         </label>
                         <input type="number" name="months" id="months" value="{{ old('months', 1) }}" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                    </div>
+                    
+                    <div>
+                        <label for="enrollment_date" class="block text-sm font-medium text-gray-700 mb-1">
+                            @if(session('locale') == 'fr')
+                                Date d'Inscription
+                            @elseif(session('locale') == 'ar')
+                                تاريخ التسجيل
+                            @else
+                                Enrollment Date
+                            @endif
+                        </label>
+                        <input type="date" name="enrollment_date" id="enrollment_date" value="{{ old('enrollment_date', date('Y-m-d')) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
                     </div>
                     
                     <div>
@@ -349,6 +366,7 @@
         const levelSelect = document.getElementById('niveau_scolaire');
         const monthsInput = document.getElementById('months');
         const studentCountInput = document.getElementById('student_count');
+        const enrollmentDateInput = document.getElementById('enrollment_date');
         
         // Initialize the total price calculation
         updateTotalPrice();
@@ -361,6 +379,7 @@
         
         monthsInput.addEventListener('change', updateTotalPrice);
         studentCountInput.addEventListener('change', updateTotalPrice);
+        enrollmentDateInput.addEventListener('change', updateTotalPrice);
         
         // Make the function available globally
         window.updateTotalPrice = updateTotalPrice;

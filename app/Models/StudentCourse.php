@@ -20,14 +20,16 @@ class StudentCourse extends Model
         'enrollment_date',
         'payment_expiry',
         'paid_amount',
+        'monthly_revenue_amount',
         'months',
         'status'
     ];
 
     protected $casts = [
-        'enrollment_date' => 'date',
-        'payment_expiry' => 'date',
+        'enrollment_date' => 'datetime',
+        'payment_expiry' => 'datetime',
         'paid_amount' => 'float',
+        'monthly_revenue_amount' => 'float',
         'status' => 'string'
     ];
 
@@ -107,28 +109,122 @@ class StudentCourse extends Model
     }
 
     /**
-     * Get the course name
+     * Get the name of the course (either regular or communication)
      */
     public function getCourseName()
     {
         if ($this->course_id) {
-            return $this->course->matiere;
+            return $this->course ? $this->course->matiere : 'N/A';
         } elseif ($this->communication_course_id) {
-            return $this->communicationCourse->matiere;
+            return $this->communicationCourse ? $this->communicationCourse->matiere : 'N/A';
         }
         return 'N/A';
     }
     
     /**
-     * Get the course type
+     * Get the type of course (regular or communication)
      */
     public function getCourseType()
     {
         if ($this->course_id) {
-            return $this->course->type ?? 'regular';
+            return 'regular';
         } elseif ($this->communication_course_id) {
             return 'communication';
         }
         return 'unknown';
+    }
+    
+    /**
+     * Calculate the monthly revenue for this enrollment
+     * 
+     * @return float
+     */
+    public function calculateMonthlyRevenue()
+    {
+        $totalPaid = $this->paid_amount;
+        $monthsCount = intval($this->months);
+        
+        if ($monthsCount <= 0) {
+            $monthsCount = 1;
+        }
+        
+        return round($totalPaid / $monthsCount, 2);
+    }
+    
+    /**
+     * Get revenue for a specific month
+     * 
+     * @param string|Carbon $monthDate A date within the target month
+     * @return float The revenue for that month or 0 if not applicable
+     */
+    public function getRevenueForMonth($monthDate)
+    {
+        if (!$this->enrollment_date || !$this->payment_expiry) {
+            return 0;
+        }
+        
+        $targetMonth = $monthDate instanceof Carbon 
+            ? $monthDate->copy()->startOfMonth() 
+            : Carbon::parse($monthDate)->startOfMonth();
+        
+        $enrollmentStart = $this->enrollment_date->copy()->startOfMonth();
+        $paymentEnd = $this->payment_expiry->copy()->startOfMonth();
+        
+        // Check if the target month is within the enrollment period
+        if ($targetMonth->lt($enrollmentStart) || $targetMonth->gt($paymentEnd)) {
+            return 0;
+        }
+        
+        // If we have a monthly_revenue_amount, use it
+        if ($this->monthly_revenue_amount > 0) {
+            return $this->monthly_revenue_amount;
+        }
+        
+        // Otherwise calculate it from the total paid amount
+        return $this->calculateMonthlyRevenue();
+    }
+    
+    /**
+     * Get all monthly revenues for this enrollment
+     * 
+     * @return array Array of monthly revenues with month as key
+     */
+    public function getAllMonthlyRevenues()
+    {
+        if (!$this->enrollment_date || !$this->payment_expiry) {
+            return [];
+        }
+        
+        $result = [];
+        $monthlyAmount = $this->monthly_revenue_amount > 0 
+            ? $this->monthly_revenue_amount 
+            : $this->calculateMonthlyRevenue();
+        
+        $currentMonth = $this->enrollment_date->copy()->startOfMonth();
+        $lastMonth = $this->payment_expiry->copy()->startOfMonth();
+        
+        while ($currentMonth->lte($lastMonth)) {
+            $key = $currentMonth->format('Y-m');
+            $result[$key] = $monthlyAmount;
+            $currentMonth->addMonth();
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Set the payment_expiry attribute
+     */
+    public function setPaymentExpiryAttribute($value)
+    {
+        $this->attributes['payment_expiry'] = Carbon::parse($value)->format('Y-m-d');
+    }
+    
+    /**
+     * Set the enrollment_date attribute
+     */
+    public function setEnrollmentDateAttribute($value)
+    {
+        $this->attributes['enrollment_date'] = Carbon::parse($value)->format('Y-m-d');
     }
 } 
